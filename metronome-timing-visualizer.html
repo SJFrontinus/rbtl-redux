@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Metronome Timing Visualizer</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@700;800&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+--bg:       #090910;
+--surface:  #0f0f18;
+--panel:    #13131f;
+--border:   #1e1e30;
+--muted:    #35354a;
+--dim:      #55556a;
+--text:     #ccc8be;
+--accent:   #e8e060;
+--green:    #38e87a;
+--yellow:   #f0b840;
+--red:      #e05050;
+--green-glow: rgba(56,232,122,0.45);
+--yellow-glow: rgba(240,184,64,0.4);
+}
+
+body {
+background: var(--bg);
+color: var(--text);
+font-family: 'Space Mono', monospace;
+min-height: 100vh;
+padding: 28px 18px 60px;
+display: flex;
+flex-direction: column;
+align-items: center;
+gap: 22px;
+}
+
+/* ─── Header ─── */
+header {
+display: flex;
+flex-direction: column;
+align-items: center;
+gap: 4px;
+}
+h1 {
+font-family: 'Syne', sans-serif;
+font-weight: 800;
+font-size: 1.25rem;
+letter-spacing: 0.14em;
+text-transform: uppercase;
+color: var(--accent);
+}
+.subtitle {
+font-size: 0.6rem;
+letter-spacing: 0.18em;
+text-transform: uppercase;
+color: var(--dim);
+}
+
+/* ─── Controls row ─── */
+.controls {
+display: flex;
+gap: 18px;
+align-items: flex-start;
+justify-content: center;
+flex-wrap: wrap;
+width: 100%;
+max-width: 860px;
+background: var(--panel);
+border: 1px solid var(--border);
+border-radius: 10px;
+padding: 18px 22px;
+}
+
+/* ─── Rotary knob ─── */
+.knob-group {
+display: flex;
+flex-direction: column;
+align-items: center;
+gap: 5px;
+}
+.knob-label {
+font-size: 0.58rem;
+letter-spacing: 0.16em;
+text-transform: uppercase;
+color: var(--dim);
+}
+canvas.knob {
+cursor: ns-resize;
+display: block;
+}
+canvas.knob:hover { filter: brightness(1.1); }
+.knob-readout {
+font-size: 0.68rem;
+color: var(--accent);
+text-align: center;
+white-space: pre;
+line-height: 1.5;
+min-height: 2.2em;
+}
+
+/* ─── Ticks control ─── */
+.ticks-group {
+display: flex;
+flex-direction: column;
+align-items: center;
+gap: 6px;
+}
+.ticks-group label {
+font-size: 0.58rem;
+letter-spacing: 0.16em;
+text-transform: uppercase;
+color: var(--dim);
+}
+input[type=range] {
+-webkit-appearance: none;
+appearance: none;
+width: 100px;
+height: 4px;
+background: var(--muted);
+border-radius: 2px;
+outline: none;
+cursor: pointer;
+}
+input[type=range]::-webkit-slider-thumb {
+-webkit-appearance: none;
+width: 14px; height: 14px;
+background: var(--accent);
+border-radius: 50%;
+}
+.ticks-val {
+font-size: 0.9rem;
+font-weight: 700;
+color: var(--accent);
+}
+
+/* ─── Buttons ─── */
+.btn-group {
+display: flex;
+flex-direction: column;
+gap: 7px;
+padding-top: 22px;
+}
+.btn {
+font-family: 'Space Mono', monospace;
+font-size: 0.7rem;
+font-weight: 700;
+letter-spacing: 0.08em;
+border: none;
+border-radius: 5px;
+padding: 8px 18px;
+cursor: pointer;
+transition: opacity 0.12s, transform 0.08s;
+}
+.btn:hover  { opacity: 0.85; }
+.btn:active { transform: scale(0.96); }
+.btn-play  { background: var(--green);  color: #060c10; }
+.btn-stop  { background: var(--red);    color: #fff; }
+.btn-reset { background: transparent; border: 1px solid var(--muted); color: var(--dim); }
+
+/* ─── Divider ─── */
+.ctrl-divider {
+width: 1px;
+align-self: stretch;
+background: var(--border);
+margin: 0 2px;
+}
+
+/* ─── Lights ─── */
+.lights-section {
+width: 100%;
+max-width: 860px;
+background: var(--panel);
+border: 1px solid var(--border);
+border-radius: 8px;
+padding: 14px 18px 18px;
+}
+.section-label {
+font-size: 0.58rem;
+letter-spacing: 0.18em;
+text-transform: uppercase;
+color: var(--dim);
+margin-bottom: 12px;
+}
+#lights-container {
+display: grid;
+grid-template-columns: 1fr 1fr;
+grid-template-rows: repeat(10, auto);
+gap: 14px 0;
+max-width: 500px;
+margin: 0 auto;
+}
+.light-wrap {
+display: flex;
+align-items: center;
+gap: 10px;
+}
+.light-wrap.left {
+justify-self: start;
+flex-direction: row;
+padding-left: 20px;
+}
+.light-wrap.right {
+justify-self: end;
+flex-direction: row-reverse;
+padding-right: 20px;
+}
+.light {
+width: 28px;
+height: 28px;
+border-radius: 50%;
+border: 1px solid var(--border);
+transition: background 0.05s ease, box-shadow 0.05s ease;
+flex-shrink: 0;
+}
+.light.dark   { background: #1a1a2e; border-color: #2a2a42; box-shadow: none; }
+.light.green  { background: var(--green);  border-color: var(--green);  box-shadow: 0 0 12px var(--green-glow); }
+.light.yellow { background: var(--yellow); border-color: var(--yellow); box-shadow: 0 0 10px var(--yellow-glow); }
+.light.red    { background: var(--red);    border-color: var(--red);    box-shadow: 0 0 10px rgba(224,80,80,0.4); }
+.light-num {
+font-size: 0.7rem;
+color: var(--muted);
+line-height: 1;
+font-weight: 700;
+}
+
+
+/* status bar */
+.status-bar {
+font-size: 0.6rem;
+color: var(--dim);
+letter-spacing: 0.1em;
+text-transform: uppercase;
+margin-top: 8px;
+text-align: right;
+padding-right: 2px;
+}
+.status-bar span { color: var(--accent); }
+</style>
+
+</head>
+<body>
+
+<header>
+  <h1>Metronome Timing Visualizer</h1>
+  <div class="subtitle">Tick-relative event offset debugger</div>
+</header>
+
+<!-- Controls -->
+
+<div class="controls">
+
+  <div class="knob-group">
+    <div class="knob-label">Speed (t/s)</div>
+    <canvas class="knob" id="knob-speed" width="80" height="80"></canvas>
+    <div class="knob-readout" id="readout-speed"></div>
+  </div>
+
+  <div class="ctrl-divider"></div>
+
+  <div class="knob-group">
+    <div class="knob-label">Offset (early)</div>
+    <canvas class="knob" id="knob-offset" width="80" height="80"></canvas>
+    <div class="knob-readout" id="readout-offset"></div>
+  </div>
+
+  <div class="ctrl-divider"></div>
+
+  <div class="ticks-group">
+    <label for="ticks-slider">Tick Count</label>
+    <input type="range" id="ticks-slider" min="5" max="40" value="20">
+    <div class="ticks-val" id="ticks-val">20</div>
+  </div>
+
+  <div class="ctrl-divider"></div>
+
+  <div class="btn-group">
+    <button class="btn btn-play"  id="btn-play">▶ PLAY</button>
+    <button class="btn btn-stop"  id="btn-stop">■ STOP</button>
+    <button class="btn btn-reset" id="btn-reset">↺ RESET</button>
+  </div>
+
+</div>
+
+<!-- Lights -->
+
+<div class="lights-section">
+  <div class="section-label">Tick Lights</div>
+  <div id="lights-container"></div>
+  <div class="status-bar" id="status-bar">stopped</div>
+</div>
+
+
+<script>
+'use strict';
+
+// ═══════════════════════════════════════════════════════
+//  ROTARY KNOB
+// ═══════════════════════════════════════════════════════
+
+function makeKnob(id, min, max, initVal, decimals, onChange) {
+  const canvas = document.getElementById(id);
+  const ctx    = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  const cx = W / 2, cy = H / 2;
+  const radius = W * 0.36;
+  const START  = Math.PI * 0.75;
+  const END    = Math.PI * 2.25;
+  const SPAN   = END - START;
+
+  let value   = Math.max(min, Math.min(max, initVal));
+  let dragY   = 0;
+  let active  = false;
+
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+
+    // outer ring shadow
+    ctx.beginPath();
+    ctx.arc(cx, cy, radius + 5, 0, Math.PI * 2);
+    ctx.fillStyle = '#0a0a14';
+    ctx.fill();
+
+    // body
+    ctx.beginPath();
+    ctx.arc(cx, cy, radius + 2, 0, Math.PI * 2);
+    const grad = ctx.createRadialGradient(cx - 4, cy - 4, 2, cx, cy, radius + 2);
+    grad.addColorStop(0, '#252535');
+    grad.addColorStop(1, '#16161f');
+    ctx.fillStyle = grad;
+    ctx.fill();
+
+    // track
+    ctx.beginPath();
+    ctx.arc(cx, cy, radius, START, END);
+    ctx.strokeStyle = '#1a1a2a';
+    ctx.lineWidth = 5;
+    ctx.lineCap = 'round';
+    ctx.stroke();
+
+    // value arc
+    const frac = (value - min) / (max - min);
+    const valAngle = START + frac * SPAN;
+    ctx.beginPath();
+    ctx.arc(cx, cy, radius, START, valAngle);
+    ctx.strokeStyle = active ? '#fff08a' : '#e8e060';
+    ctx.lineWidth = 5;
+    ctx.lineCap = 'round';
+    ctx.stroke();
+
+    // pointer
+    const px = cx + Math.cos(valAngle) * (radius - 1);
+    const py = cy + Math.sin(valAngle) * (radius - 1);
+    ctx.beginPath();
+    ctx.arc(px, py, 4.5, 0, Math.PI * 2);
+    ctx.fillStyle = '#fffbe8';
+    ctx.fill();
+
+    // inner dot
+    ctx.beginPath();
+    ctx.arc(cx, cy, 5, 0, Math.PI * 2);
+    ctx.fillStyle = '#1a1a2a';
+    ctx.fill();
+  }
+
+  function set(v) {
+    value = Math.max(min, Math.min(max, v));
+    draw();
+    onChange(value);
+  }
+
+  canvas.addEventListener('pointerdown', e => {
+    active = true;
+    dragY  = e.clientY;
+    canvas.setPointerCapture(e.pointerId);
+    draw();
+  });
+
+  canvas.addEventListener('pointermove', e => {
+    if (!active) return;
+    const dy   = dragY - e.clientY;
+    dragY      = e.clientY;
+    const step = (max - min) / 150;
+    set(value + dy * step);
+  });
+
+  canvas.addEventListener('pointerup', () => { active = false; draw(); });
+
+  // scroll wheel too
+  canvas.addEventListener('wheel', e => {
+    e.preventDefault();
+    const step = (max - min) / 150;
+    set(value - Math.sign(e.deltaY) * step * 3);
+  }, { passive: false });
+
+  set(value);
+  return { set, get: () => value };
+}
+
+// ═══════════════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════════════
+
+let audioCtx      = null;
+let isPlaying     = false;
+let startAudioT   = 0;
+let schedTick     = 0;
+let schedTimer    = null;
+let lightTimeouts = [];
+let lightStates   = [];
+let lightHits     = [];  // true if user clicked while yellow
+
+let ticksPerSec   = 4;    // overridden by knob init
+let totalTicks    = 20;
+let offsetFrac    = 0;    // 0..1 (fraction of tick interval)
+
+// Derived
+const tickSec   = () => 1 / ticksPerSec;
+const tickMs    = () => tickSec() * 1000;
+const offsetSec = () => offsetFrac * tickSec();
+const offsetMs  = () => offsetFrac * tickMs();
+
+// ═══════════════════════════════════════════════════════
+//  AUDIO
+// ═══════════════════════════════════════════════════════
+
+function ensureCtx() {
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  return audioCtx;
+}
+
+function scheduleClick(time, isCountdown) {
+  const ac   = ensureCtx();
+  const freq = isCountdown ? 600 : 900;
+  const vol  = isCountdown ? 0.3 : 0.5;
+
+  // Primary tone — sharp sine ping
+  const osc = ac.createOscillator();
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(freq, time);
+  osc.frequency.exponentialRampToValueAtTime(freq * 0.5, time + 0.06);
+
+  const env = ac.createGain();
+  env.gain.setValueAtTime(vol, time);
+  env.gain.exponentialRampToValueAtTime(0.001, time + 0.08);
+
+  // Second harmonic for woodblock character
+  const osc2 = ac.createOscillator();
+  osc2.type = 'sine';
+  osc2.frequency.setValueAtTime(freq * 2.4, time);
+  osc2.frequency.exponentialRampToValueAtTime(freq * 1.2, time + 0.04);
+
+  const env2 = ac.createGain();
+  env2.gain.setValueAtTime(vol * 0.35, time);
+  env2.gain.exponentialRampToValueAtTime(0.001, time + 0.04);
+
+  osc.connect(env);
+  osc2.connect(env2);
+  env.connect(ac.destination);
+  env2.connect(ac.destination);
+
+  osc.start(time);
+  osc.stop(time + 0.1);
+  osc2.start(time);
+  osc2.stop(time + 0.06);
+}
+
+// ═══════════════════════════════════════════════════════
+//  SCHEDULER  (Web Audio lookahead pattern)
+// ═══════════════════════════════════════════════════════
+
+const LOOKAHEAD = 0.12; // seconds
+const SCHED_MS  = 25;   // polling interval
+const COUNTDOWN = 3;    // 3-2-1 countdown beats
+
+// countdownStartT is when countdown beat 0 (the "3") fires
+let countdownStartT = 0;
+
+function scheduleCountdownBeat(beat) {
+  // beat 0 = "3", beat 1 = "2", beat 2 = "1"
+  const ac   = ensureCtx();
+  const time = countdownStartT + beat * tickSec();
+  scheduleClick(time, true);
+
+  const label = 3 - beat; // 3, 2, 1
+  const delay = Math.max(0, (time - ac.currentTime) * 1000);
+  const t = setTimeout(() => {
+    setStatus(`countdown: ${label}`);
+  }, delay);
+  lightTimeouts.push(t);
+}
+
+function scheduleTickN(n) {
+  const ac       = ensureCtx();
+  const tickTime = startAudioT + n * tickSec();
+
+  // Audio click on actual tick
+  scheduleClick(tickTime, false);
+
+  // Green light comes on offsetSec() BEFORE the tick sound
+  const greenT     = tickTime - offsetSec();
+  const greenDelay = Math.max(0, (greenT - ac.currentTime) * 1000);
+
+  const t1 = setTimeout(() => {
+    // Previous light: green if hit, red if missed
+    if (n > 0 && lightStates[n - 1] === 'yellow') {
+      lightStates[n - 1] = lightHits[n - 1] ? 'green' : 'red';
+    }
+    lightStates[n] = 'yellow';
+    renderLights();
+    setStatus(`tick ${n + 1} / ${totalTicks}`);
+  }, greenDelay);
+  lightTimeouts.push(t1);
+
+  // For the last tick: keep yellow for one full tick interval (phantom tick),
+  // then resolve based on hit/miss
+  if (n === totalTicks - 1) {
+    const phantomGreenT = tickTime + tickSec() - offsetSec();
+    const phantomDelay  = Math.max(0, (phantomGreenT - ac.currentTime) * 1000);
+
+    const t2 = setTimeout(() => {
+      lightStates[n] = lightHits[n] ? 'green' : 'red';
+      renderLights();
+      isPlaying = false;
+      setStatus('done');
+    }, phantomDelay);
+    lightTimeouts.push(t2);
+  }
+}
+
+function schedulerLoop() {
+  const ac = ensureCtx();
+
+  // Schedule countdown beats
+  while (
+    schedCountdown < COUNTDOWN &&
+    countdownStartT + schedCountdown * tickSec() < ac.currentTime + LOOKAHEAD
+  ) {
+    scheduleCountdownBeat(schedCountdown);
+    schedCountdown++;
+  }
+
+  // Schedule tick beats — use the green light time (earliest event per tick)
+  while (
+    schedTick < totalTicks &&
+    (startAudioT + schedTick * tickSec() - offsetSec()) < ac.currentTime + LOOKAHEAD
+  ) {
+    scheduleTickN(schedTick);
+    schedTick++;
+  }
+
+  if (schedTick < totalTicks) {
+    schedTimer = setTimeout(schedulerLoop, SCHED_MS);
+  }
+}
+
+let schedCountdown = 0;
+
+// ═══════════════════════════════════════════════════════
+//  TRANSPORT
+// ═══════════════════════════════════════════════════════
+
+function play() {
+  if (isPlaying) return;
+  const ac = ensureCtx();
+  if (ac.state === 'suspended') ac.resume();
+
+  isPlaying      = true;
+  schedTick      = 0;
+  schedCountdown = 0;
+  lightStates    = new Array(totalTicks).fill('dark');
+  lightHits      = new Array(totalTicks).fill(false);
+  clearAllTimeouts();
+  renderLights();
+  setStatus('countdown: 3');
+
+  // Timeline:
+  //   countdownStartT ----3 beats---- startAudioT (tick 0 sound)
+  //   First light green = startAudioT - offsetSec()
+  countdownStartT = ac.currentTime + 0.06;
+  startAudioT     = countdownStartT + COUNTDOWN * tickSec();
+
+  schedulerLoop();
+}
+
+function stop() {
+  isPlaying = false;
+  clearTimeout(schedTimer);
+  clearAllTimeouts();
+  setStatus('stopped');
+}
+
+function reset() {
+  stop();
+  lightStates = new Array(totalTicks).fill('dark');
+  renderLights();
+  setStatus('ready');
+}
+
+function clearAllTimeouts() {
+  lightTimeouts.forEach(clearTimeout);
+  lightTimeouts = [];
+}
+
+// ═══════════════════════════════════════════════════════
+//  RENDER
+// ═══════════════════════════════════════════════════════
+
+function renderLights() {
+  for (let i = 0; i < totalTicks; i++) {
+    const st = lightStates[i] || 'dark';
+    const el  = document.getElementById(`light-${i}`);
+    if (el)  el.className  = `light ${st}`;
+  }
+}
+
+// Lights row — zigzag: odd ticks left column, even ticks right column
+// Position map: each entry is { col: 'left'|'right', row: 0-based }
+let lightPositions = [];
+
+function buildLights() {
+  const c = document.getElementById('lights-container');
+  c.innerHTML = '';
+  lightPositions = [];
+  const rows = Math.ceil(totalTicks / 2);
+  c.style.gridTemplateRows = `repeat(${rows}, auto)`;
+
+  for (let i = 0; i < totalTicks; i++) {
+    const col = (i % 2 === 0) ? 'left' : 'right';
+    const row = Math.floor(i / 2);
+    lightPositions.push({ col, row });
+
+    const w = document.createElement('div');
+    w.className = `light-wrap ${col}`;
+    w.style.gridRow = row + 1;
+    w.style.gridColumn = col === 'left' ? 1 : 2;
+    w.innerHTML = `<div id="light-${i}" class="light dark"></div>
+                   <div class="light-num">${i + 1}</div>`;
+    c.appendChild(w);
+  }
+}
+
+
+// Readouts
+function updateReadouts() {
+  document.getElementById('readout-speed').textContent =
+    `${ticksPerSec.toFixed(1)} t/s\n${tickMs().toFixed(1)} ms/tick`;
+  document.getElementById('readout-offset').textContent =
+    `${(offsetFrac * 100).toFixed(1)}%\n${offsetMs().toFixed(2)} ms`;
+}
+
+function setStatus(msg) {
+  const el = document.getElementById('status-bar');
+  if (el) el.innerHTML = msg;
+}
+
+// ═══════════════════════════════════════════════════════
+//  HIT DETECTION — click/tap near yellow light
+// ═══════════════════════════════════════════════════════
+
+function handleHitClick(e) {
+  if (!isPlaying) return;
+
+  const clickX = e.clientX;
+  const clickY = e.clientY;
+  const HIT_RADIUS = 80; // px — generous hit zone
+
+  let bestIdx = -1;
+  let bestDist = Infinity;
+
+  for (let i = 0; i < totalTicks; i++) {
+    if (lightStates[i] !== 'yellow') continue;
+    const el = document.getElementById(`light-${i}`);
+    if (!el) continue;
+    const rect = el.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    const dist = Math.hypot(clickX - cx, clickY - cy);
+    if (dist < bestDist) {
+      bestDist = dist;
+      bestIdx = i;
+    }
+  }
+
+  if (bestIdx >= 0 && bestDist <= HIT_RADIUS) {
+    lightHits[bestIdx] = true;
+    lightStates[bestIdx] = 'green';
+    renderLights();
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════════
+
+document.addEventListener('DOMContentLoaded', () => {
+
+  // Knobs
+  makeKnob('knob-speed', 0.5, 4, 2, 1, v => {
+    ticksPerSec = v;
+    updateReadouts();
+  });
+
+  makeKnob('knob-offset', 0, 1, 0, 3, v => {
+    offsetFrac = v;
+    updateReadouts();
+  });
+
+  // Ticks slider
+  document.getElementById('ticks-slider').addEventListener('input', e => {
+    totalTicks = +e.target.value;
+    document.getElementById('ticks-val').textContent = totalTicks;
+    reset();
+    buildLights();
+  });
+
+  // Buttons
+  document.getElementById('btn-play').addEventListener('click', play);
+  document.getElementById('btn-stop').addEventListener('click', stop);
+  document.getElementById('btn-reset').addEventListener('click', reset);
+
+  // Hit detection — click/tap anywhere on the page
+  document.addEventListener('pointerdown', handleHitClick);
+
+  // Init state
+  ticksPerSec = 2;
+  lightStates = new Array(totalTicks).fill('dark');
+  buildLights();
+  updateReadouts();
+  setStatus('ready');
+});
+</script>
+
+</body>
+</html>
