@@ -172,11 +172,13 @@ margin: 0 2px;
 /* ─── Lights ─── */
 .lights-section {
 width: 100%;
-max-width: 860px;
+/* Grow with the viewport so the tick columns can spread toward the
+   edges in landscape / fullscreen, while staying readable on phones. */
+max-width: min(1280px, 94vw);
 background: var(--panel);
 border: 1px solid var(--border);
 border-radius: 8px;
-padding: 14px 18px 18px;
+padding: 14px clamp(18px, 4vw, 56px) 18px;
 }
 .section-label {
 font-size: 0.58rem;
@@ -190,7 +192,9 @@ display: grid;
 grid-template-columns: 1fr 1fr;
 grid-template-rows: repeat(10, auto);
 gap: 14px 0;
-max-width: 500px;
+/* Fill the panel: the left/right columns push to the panel edges, so the
+   gap between them widens as the window grows. */
+width: 100%;
 margin: 0 auto;
 }
 .light-wrap {
