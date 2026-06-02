@@ -10,6 +10,9 @@
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+/* [hidden] must win over author display:flex/grid rules below */
+[hidden] { display: none !important; }
+
 :root {
 --bg:       #090910;
 --surface:  #0f0f18;
@@ -136,6 +139,17 @@ font-size: 0.9rem;
 font-weight: 700;
 color: var(--accent);
 }
+select#text-select {
+font-family: 'Space Mono', monospace;
+font-size: 0.62rem;
+color: var(--accent);
+background: var(--surface);
+border: 1px solid var(--muted);
+border-radius: 5px;
+padding: 6px 8px;
+cursor: pointer;
+max-width: 160px;
+}
 
 /* ─── Buttons ─── */
 .btn-group {
@@ -232,6 +246,59 @@ font-weight: 700;
 }
 
 
+/* ─── Exercise chooser ─── */
+.chooser {
+  display: flex;
+  gap: 8px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 5px;
+}
+.chooser-btn {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--dim);
+  background: transparent;
+  border: none;
+  border-radius: 5px;
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: color 0.12s, background 0.12s;
+}
+.chooser-btn:hover { color: var(--text); }
+.chooser-btn.active {
+  color: #060c10;
+  background: var(--accent);
+}
+
+/* ─── RBTL reading pane ─── */
+#rbtl-pane {
+  margin: 0 auto;
+  max-width: 100%;
+  font-family: 'Space Mono', monospace;
+  line-height: 1.9;
+  color: var(--text);
+  text-align: left;
+}
+#rbtl-pane p { margin: 0 0 1em; }
+#rbtl-pane.empty::before {
+  content: 'Load a passage to begin — SAMPLE or LOAD .TXT.';
+  color: var(--dim);
+  font-size: 0.8rem;
+}
+.rbtl-word {
+  border-radius: 4px;
+  padding: 0 2px;
+  transition: background 0.05s ease, color 0.05s ease, box-shadow 0.05s ease;
+}
+.rbtl-word.yellow { background: var(--yellow); color: #1a1205; box-shadow: 0 0 8px var(--yellow-glow); }
+.rbtl-word.green  { background: var(--green);  color: #042012; box-shadow: 0 0 8px var(--green-glow); }
+.rbtl-word.red    { background: var(--red);    color: #fff; }
+
 /* status bar */
 .status-bar {
 font-size: 0.6rem;
@@ -249,9 +316,16 @@ padding-right: 2px;
 <body>
 
 <header>
-  <h1>Metronome Timing Visualizer</h1>
-  <div class="subtitle">Tick-relative event offset debugger</div>
+  <h1 id="app-title">Metronome Timing Visualizer</h1>
+  <div class="subtitle" id="app-subtitle">Tick-relative event offset debugger</div>
 </header>
+
+<!-- Exercise chooser -->
+
+<div class="chooser">
+  <button class="chooser-btn active" id="choose-dots" data-exercise="dots">Timing (Dots)</button>
+  <button class="chooser-btn"        id="choose-rbtl" data-exercise="rbtl">Read Between the Lions</button>
+</div>
 
 <!-- Controls -->
 
@@ -271,12 +345,42 @@ padding-right: 2px;
     <div class="knob-readout" id="readout-offset"></div>
   </div>
 
-  <div class="ctrl-divider"></div>
-
-  <div class="ticks-group">
+  <!-- Dots-only controls -->
+  <div class="ctrl-divider exer-dots"></div>
+  <div class="ticks-group exer-dots" id="ticks-group">
     <label for="ticks-slider">Tick Count</label>
     <input type="range" id="ticks-slider" min="5" max="40" value="20">
     <div class="ticks-val" id="ticks-val">20</div>
+  </div>
+
+  <!-- RBTL-only controls -->
+  <div class="ctrl-divider exer-rbtl" hidden></div>
+  <div class="ticks-group exer-rbtl" hidden>
+    <label for="font-slider">Font Size</label>
+    <input type="range" id="font-slider" min="14" max="42" value="22">
+    <div class="ticks-val" id="font-val">22</div>
+  </div>
+  <div class="ctrl-divider exer-rbtl" hidden></div>
+  <div class="ticks-group exer-rbtl" hidden>
+    <label for="width-slider">Column Width</label>
+    <input type="range" id="width-slider" min="320" max="900" value="600">
+    <div class="ticks-val" id="width-val">600</div>
+  </div>
+  <div class="ctrl-divider exer-rbtl" hidden></div>
+  <div class="ticks-group exer-rbtl" hidden>
+    <label for="lines-slider">Lines</label>
+    <input type="range" id="lines-slider" min="4" max="120" value="20">
+    <div class="ticks-val" id="lines-val">20</div>
+  </div>
+  <div class="ctrl-divider exer-rbtl" hidden></div>
+  <div class="ticks-group exer-rbtl" hidden>
+    <label for="text-select">Passage</label>
+    <select id="text-select"></select>
+  </div>
+  <div class="ctrl-divider exer-rbtl" hidden></div>
+  <div class="btn-group exer-rbtl" hidden>
+    <label class="btn btn-reset" for="file-input" style="text-align:center; cursor:pointer;">📄 LOAD .TXT</label>
+    <input type="file" id="file-input" accept=".txt,text/plain" hidden>
   </div>
 
   <div class="ctrl-divider"></div>
@@ -289,12 +393,20 @@ padding-right: 2px;
 
 </div>
 
-<!-- Lights -->
+<!-- Dots target area -->
 
-<div class="lights-section">
+<div class="lights-section exer-dots" id="lights-section">
   <div class="section-label">Tick Lights</div>
   <div id="lights-container"></div>
   <div class="status-bar" id="status-bar">stopped</div>
+</div>
+
+<!-- RBTL reading pane -->
+
+<div class="lights-section exer-rbtl" id="rbtl-section" hidden>
+  <div class="section-label">Read Between the Lions</div>
+  <div id="rbtl-pane"></div>
+  <div class="status-bar" id="rbtl-status">stopped</div>
 </div>
 
 
@@ -421,6 +533,10 @@ let ticksPerSec   = 4;    // overridden by knob init
 let totalTicks    = 20;
 let offsetFrac    = 0;    // 0..1 (fraction of tick interval)
 
+// The engine drives an abstract target source. An "exercise" adapter maps the
+// engine's per-target state to concrete DOM (dots or words). Set in init().
+let activeExercise = null;
+
 // Derived
 const tickSec   = () => 1 / ticksPerSec;
 const tickMs    = () => tickSec() * 1000;
@@ -439,11 +555,16 @@ function ensureCtx() {
 }
 
 function scheduleClick(time, isCountdown) {
-  const ac   = ensureCtx();
-  const freq = isCountdown ? 600 : 900;
-  const vol  = isCountdown ? 0.3 : 0.5;
+  if (isCountdown) { scheduleLeadIn(time); return; }
+  scheduleTick(time);
+}
 
-  // Primary tone — sharp sine ping
+// Metronome tick — a sharp, bright woodblock click (the running beat).
+function scheduleTick(time) {
+  const ac   = ensureCtx();
+  const freq = 900;
+  const vol  = 0.5;
+
   const osc = ac.createOscillator();
   osc.type = 'sine';
   osc.frequency.setValueAtTime(freq, time);
@@ -474,6 +595,36 @@ function scheduleClick(time, isCountdown) {
   osc2.stop(time + 0.06);
 }
 
+// Lead-in / countdown — a soft, sustained low triangle "bloop": a deliberately
+// different timbre and attack from the sharp tick, so the 3-2-1 (at the start
+// and at every page break) never sounds like the running metronome.
+function scheduleLeadIn(time) {
+  const ac   = ensureCtx();
+  const freq = 330;          // low, warm
+  const vol  = 0.32;
+
+  const osc = ac.createOscillator();
+  osc.type = 'triangle';
+  osc.frequency.setValueAtTime(freq, time);
+
+  const env = ac.createGain();
+  env.gain.setValueAtTime(0.0001, time);
+  env.gain.exponentialRampToValueAtTime(vol, time + 0.02);  // soft attack
+  env.gain.exponentialRampToValueAtTime(0.0001, time + 0.30); // long decay
+
+  // gentle low-pass to round it off
+  const lp = ac.createBiquadFilter();
+  lp.type = 'lowpass';
+  lp.frequency.setValueAtTime(1200, time);
+
+  osc.connect(lp);
+  lp.connect(env);
+  env.connect(ac.destination);
+
+  osc.start(time);
+  osc.stop(time + 0.34);
+}
+
 // ═══════════════════════════════════════════════════════
 //  SCHEDULER  (Web Audio lookahead pattern)
 // ═══════════════════════════════════════════════════════
@@ -481,9 +632,11 @@ function scheduleClick(time, isCountdown) {
 const LOOKAHEAD = 0.12; // seconds
 const SCHED_MS  = 25;   // polling interval
 const COUNTDOWN = 3;    // 3-2-1 countdown beats
+const PAGE_PAUSE_MS = 1200; // pause between pages before the next lead-in
 
 // countdownStartT is when countdown beat 0 (the "3") fires
 let countdownStartT = 0;
+let curPage = 0;        // current page index within a run
 
 function scheduleCountdownBeat(beat) {
   // beat 0 = "3", beat 1 = "2", beat 2 = "1"
@@ -501,37 +654,48 @@ function scheduleCountdownBeat(beat) {
 
 function scheduleTickN(n) {
   const ac       = ensureCtx();
+  const count    = activeExercise.targetCount();
   const tickTime = startAudioT + n * tickSec();
 
   // Audio click on actual tick
   scheduleClick(tickTime, false);
 
-  // Green light comes on offsetSec() BEFORE the tick sound
+  // Target turns yellow offsetSec() BEFORE the tick sound (anticipation window)
   const greenT     = tickTime - offsetSec();
   const greenDelay = Math.max(0, (greenT - ac.currentTime) * 1000);
 
   const t1 = setTimeout(() => {
-    // Previous light: green if hit, red if missed
+    // Previous target: green if hit, red if missed
     if (n > 0 && lightStates[n - 1] === 'yellow') {
       lightStates[n - 1] = lightHits[n - 1] ? 'green' : 'red';
+      activeExercise.paint(n - 1, lightStates[n - 1]);
     }
     lightStates[n] = 'yellow';
-    renderLights();
-    setStatus(`tick ${n + 1} / ${totalTicks}`);
+    activeExercise.paint(n, 'yellow');
+    setStatus(`target ${n + 1} / ${count}`);
   }, greenDelay);
   lightTimeouts.push(t1);
 
-  // For the last tick: keep yellow for one full tick interval (phantom tick),
-  // then resolve based on hit/miss
-  if (n === totalTicks - 1) {
+  // For the last target on this page: keep yellow for one full tick interval
+  // (phantom tick), then resolve hit/miss and either advance to the next page
+  // (with a fresh lead-in) or finish the run.
+  if (n === count - 1) {
     const phantomGreenT = tickTime + tickSec() - offsetSec();
     const phantomDelay  = Math.max(0, (phantomGreenT - ac.currentTime) * 1000);
+    const pages = activeExercise.pageCount();
 
     const t2 = setTimeout(() => {
       lightStates[n] = lightHits[n] ? 'green' : 'red';
-      renderLights();
-      isPlaying = false;
-      setStatus('done');
+      activeExercise.paint(n, lightStates[n]);
+
+      if (curPage + 1 < pages) {
+        setStatus(`page ${curPage + 1}/${pages} done — next…`);
+        const adv = setTimeout(() => { curPage++; startPage(curPage); }, PAGE_PAUSE_MS);
+        lightTimeouts.push(adv);
+      } else {
+        isPlaying = false;
+        setStatus('done');
+      }
     }, phantomDelay);
     lightTimeouts.push(t2);
   }
@@ -549,16 +713,17 @@ function schedulerLoop() {
     schedCountdown++;
   }
 
-  // Schedule tick beats — use the green light time (earliest event per tick)
+  // Schedule tick beats — use the yellow-on time (earliest event per tick)
+  const count = activeExercise.targetCount();
   while (
-    schedTick < totalTicks &&
+    schedTick < count &&
     (startAudioT + schedTick * tickSec() - offsetSec()) < ac.currentTime + LOOKAHEAD
   ) {
     scheduleTickN(schedTick);
     schedTick++;
   }
 
-  if (schedTick < totalTicks) {
+  if (schedTick < count) {
     schedTimer = setTimeout(schedulerLoop, SCHED_MS);
   }
 }
@@ -571,23 +736,44 @@ let schedCountdown = 0;
 
 function play() {
   if (isPlaying) return;
+
+  // Freeze layout + paginate the run; abort if there's nothing to drive.
+  if (activeExercise.layoutPages && !activeExercise.layoutPages()) {
+    setStatus('no targets');
+    return;
+  }
+  if (activeExercise.pageCount() < 1) { setStatus('no targets'); return; }
+
   const ac = ensureCtx();
   if (ac.state === 'suspended') ac.resume();
 
-  isPlaying      = true;
+  isPlaying = true;
+  curPage   = 0;
+  clearAllTimeouts();
+  startPage(0);
+}
+
+// Run one page: prepare its targets, then schedule its lead-in + ticks. Each
+// page anchors to a fresh audioCtx.currentTime so the lead-in re-runs per page.
+function startPage(p) {
+  const ac = ensureCtx();
+  activeExercise.beginPage(p);
+  const count = activeExercise.targetCount();
+
   schedTick      = 0;
   schedCountdown = 0;
-  lightStates    = new Array(totalTicks).fill('dark');
-  lightHits      = new Array(totalTicks).fill(false);
-  clearAllTimeouts();
-  renderLights();
-  setStatus('countdown: 3');
+  lightStates    = new Array(count).fill('dark');
+  lightHits      = new Array(count).fill(false);
+  renderTargets();
 
   // Timeline:
   //   countdownStartT ----3 beats---- startAudioT (tick 0 sound)
-  //   First light green = startAudioT - offsetSec()
+  //   First target yellow = startAudioT - offsetSec()
   countdownStartT = ac.currentTime + 0.06;
   startAudioT     = countdownStartT + COUNTDOWN * tickSec();
+
+  const pages = activeExercise.pageCount();
+  setStatus(pages > 1 ? `page ${p + 1}/${pages} — countdown: 3` : 'countdown: 3');
 
   schedulerLoop();
 }
@@ -601,8 +787,9 @@ function stop() {
 
 function reset() {
   stop();
-  lightStates = new Array(totalTicks).fill('dark');
-  renderLights();
+  // resetLayout owns the idle visual (dots → dark; RBTL → re-render preview).
+  if (activeExercise.resetLayout) activeExercise.resetLayout();
+  lightStates = new Array(activeExercise.targetCount()).fill('dark');
   setStatus('ready');
 }
 
@@ -615,11 +802,11 @@ function clearAllTimeouts() {
 //  RENDER
 // ═══════════════════════════════════════════════════════
 
-function renderLights() {
-  for (let i = 0; i < totalTicks; i++) {
-    const st = lightStates[i] || 'dark';
-    const el  = document.getElementById(`light-${i}`);
-    if (el)  el.className  = `light ${st}`;
+// Repaint every target for the active exercise from the generic state array.
+function renderTargets() {
+  const n = activeExercise.targetCount();
+  for (let i = 0; i < n; i++) {
+    activeExercise.paint(i, lightStates[i] || 'dark');
   }
 }
 
@@ -649,6 +836,269 @@ function buildLights() {
   }
 }
 
+// ═══════════════════════════════════════════════════════
+//  EXERCISE ADAPTERS
+//  Each maps the engine's generic per-target state onto concrete DOM.
+// ═══════════════════════════════════════════════════════
+
+const dotExercise = {
+  statusId: 'status-bar',
+  targetCount() { return totalTicks; },
+  pageCount()   { return 1; },
+  layoutPages() { return totalTicks > 0; },
+  beginPage()   { buildLights(); },
+  buildLayout()  { buildLights(); },
+  resetLayout()  { for (let i = 0; i < totalTicks; i++) this.paint(i, 'dark'); },
+  paint(i, state) {
+    const el = document.getElementById(`light-${i}`);
+    if (el) el.className = `light ${state}`;
+  },
+  getTargetEl(i) { return document.getElementById(`light-${i}`); },
+  hitRadius()    { return 80; },
+};
+
+// ═══════════════════════════════════════════════════════
+//  RBTL — Read Between the Lions (words as targets)
+// ═══════════════════════════════════════════════════════
+
+// Bundled sample passage (works from file:// — no fetch). Paragraphs are
+// separated by blank lines, matching the .txt convention.
+const RBTL_SAMPLE = `Atherogenicity of Lipoprotein(a) Versus LDL: A Comprehensive Analysis
+
+Lipoprotein(a) and low-density lipoprotein both contribute to atherosclerotic cardiovascular disease, yet Lp(a) is substantially more atherogenic on a per-particle basis. This distinction has critical implications for cardiovascular risk assessment and clinical management. Recent Mendelian randomization analyses and mechanistic studies reveal fundamental differences in how these lipoproteins drive vascular pathology.
+
+The most striking difference between Lp(a) and LDL is their relative atherogenic potency when compared particle-for-particle. Since both lipoproteins contain exactly one apoB molecule per particle, researchers can use apoB as a direct quantitative comparator. Mendelian randomization studies leveraging genome-wide association data from over five hundred thousand participants demonstrate that Lp(a) is roughly six to seven times more atherogenic than LDL on an equimolar basis.
+
+This heightened per-particle risk translates to meaningful clinical implications. However, since circulating Lp(a) particle concentrations are typically far lower than LDL particle concentrations, even in individuals with markedly elevated Lp(a), the absolute contribution to total apoB-containing particles remains limited. On a population level, LDL particles, which vastly outnumber Lp(a) particles, account for greater absolute cardiovascular burden in most individuals.`;
+
+// Kid-friendly bundled passages (original text). Short sentences make clean
+// visual lines for new readers.
+const RBTL_STORY_FOX = `The Little Fox and the Bright Moon
+
+One quiet night a little fox crept out of her den. The moon was big and round and bright. The fox looked up and thought it was a ball of cheese in the sky. She wanted a taste of it very much.
+
+She ran across the field as fast as she could. She jumped over a log and splashed through a stream. But the moon stayed far away, high above the trees. No matter how fast she ran, she could not reach it.
+
+At last the little fox sat down to rest. A wise old owl landed on a branch nearby. The owl said the moon is not for eating. It is a light for everyone to share. The fox smiled, and the two friends watched the moon together until morning.`;
+
+const RBTL_STORY_GARDEN = `The Seed That Would Not Wait
+
+A small boy planted one tiny seed in a pot of soft brown soil. He gave it water and set it by the window. Then he waited and waited for it to grow.
+
+Every morning he checked the pot. He saw only dirt. He tapped the soil and called to the seed. Wake up, little seed, he said. But nothing happened at all.
+
+The boy felt sad and almost gave up hope. His mother told him that good things take time. So he kept watering the pot each day. One bright morning a tiny green leaf pushed up through the soil. The boy clapped his hands with joy. His patience had grown a plant.`;
+
+// Library of bundled passages, shown in the Passage dropdown.
+const RBTL_TEXTS = [
+  { name: 'The Little Fox (easy)', text: RBTL_STORY_FOX },
+  { name: 'The Seed (easy)',       text: RBTL_STORY_GARDEN },
+  { name: 'Lp(a) vs LDL (hard)',   text: RBTL_SAMPLE },
+];
+
+let rbtlText    = '';
+let rbtlTargets = [];   // current page's chosen word spans, reading order
+let rbtlFontPx  = 22;
+let rbtlColW    = 600;
+let rbtlMaxLines = 20;  // total visual lines in the whole exercise
+
+// Pagination state (computed by computeRbtlLayout)
+let rbtlLines     = [];  // array of visual lines; each is an array of word spans
+let rbtlLineH     = 0;   // px height of one visual line
+let rbtlPerPage   = 0;   // visual lines that fit one page
+let rbtlPageCount = 0;
+
+function rbtlPane() { return document.getElementById('rbtl-pane'); }
+
+// Lay out the text into measurable word spans at the current font/width.
+function buildRbtlSpans() {
+  const pane = rbtlPane();
+  pane.style.fontSize = rbtlFontPx + 'px';
+  pane.style.width    = rbtlColW + 'px';
+  pane.style.height   = 'auto';
+  pane.style.overflow = 'visible';
+  pane.scrollTop      = 0;
+  pane.innerHTML = '';
+  rbtlTargets = [];
+
+  if (!rbtlText) { pane.classList.add('empty'); return; }
+  pane.classList.remove('empty');
+
+  const paras = rbtlText.split(/\n\s*\n/);
+  for (const para of paras) {
+    const text = para.replace(/\s+/g, ' ').trim();
+    if (!text) continue;
+    const p = document.createElement('p');
+    const words = text.split(' ');
+    words.forEach((word, idx) => {
+      const span = document.createElement('span');
+      span.className = 'rbtl-word';
+      span.textContent = word;
+      p.appendChild(span);
+      if (idx < words.length - 1) p.appendChild(document.createTextNode(' '));
+    });
+    pane.appendChild(p);
+  }
+}
+
+// Group word spans into visual lines by vertical position (must be called while
+// the pane is at full height / not clipped).
+function detectLines() {
+  const spans = Array.from(document.querySelectorAll('.rbtl-word'));
+  const lines = [];
+  let curTop = null, cur = null;
+  for (const s of spans) {
+    const top = Math.round(s.getBoundingClientRect().top);
+    if (curTop === null || Math.abs(top - curTop) > 4) {
+      cur = []; lines.push(cur); curTop = top;
+    }
+    cur.push(s);
+  }
+  return lines;
+}
+
+// Remove every node at/after the first span of the first excluded line, so the
+// DOM holds exactly rbtlMaxLines visual lines.
+function truncateAfterLine(lines, maxLines) {
+  if (lines.length <= maxLines) return;
+  const cutoff = lines[maxLines][0];
+  const para   = cutoff.parentElement;
+  let node = cutoff;
+  while (node) { const next = node.nextSibling; node.remove(); node = next; }
+  let p = para.nextElementSibling;
+  while (p) { const n = p.nextElementSibling; p.remove(); p = n; }
+}
+
+// Detect lines, cap to rbtlMaxLines, then compute page size from viewport fit.
+function computeRbtlLayout() {
+  const pane = rbtlPane();
+  let lines = detectLines();
+  if (lines.length > rbtlMaxLines) {
+    truncateAfterLine(lines, rbtlMaxLines);
+    lines = detectLines();
+  }
+  rbtlLines = lines;
+
+  rbtlLineH = (lines.length >= 2)
+    ? (lines[1][0].getBoundingClientRect().top - lines[0][0].getBoundingClientRect().top)
+    : (rbtlFontPx * 1.9);
+  if (rbtlLineH <= 0) rbtlLineH = rbtlFontPx * 1.9;
+
+  const budget = Math.max(150, Math.min(window.innerHeight * 0.5, 10000));
+  rbtlPerPage = Math.max(1, Math.floor(budget / rbtlLineH));
+
+  if (rbtlPerPage >= lines.length) {
+    rbtlPerPage   = Math.max(1, lines.length);
+    rbtlPageCount = lines.length ? 1 : 0;
+    pane.style.height = 'auto';
+    pane.style.overflow = 'visible';
+  } else {
+    rbtlPageCount = Math.ceil(lines.length / rbtlPerPage);
+    pane.style.height = (rbtlPerPage * rbtlLineH) + 'px';
+    pane.style.overflow = 'hidden';
+  }
+}
+
+// Pick a random word in the left half and one in the right half of each line
+// on page p; returns the chosen spans in reading order.
+function pickPageTargets(p) {
+  const start = p * rbtlPerPage;
+  const end   = Math.min(start + rbtlPerPage, rbtlLines.length);
+  const targets = [];
+  for (let li = start; li < end; li++) {
+    const line = rbtlLines[li];
+    if (line.length === 1) { targets.push(line[0]); continue; }
+    const mid   = Math.ceil(line.length / 2);
+    const left  = line[Math.floor(Math.random() * mid)];
+    const right = line[mid + Math.floor(Math.random() * (line.length - mid))];
+    targets.push(left, right);
+  }
+  return targets;
+}
+
+function clearRbtlHighlights() {
+  document.querySelectorAll('.rbtl-word').forEach(el =>
+    el.classList.remove('yellow', 'green', 'red'));
+}
+
+// Scroll to page p, re-roll its targets into rbtlTargets, optionally preview them.
+function showPage(p, highlight) {
+  rbtlPane().scrollTop = p * rbtlPerPage * rbtlLineH;
+  rbtlTargets = pickPageTargets(p);
+  if (highlight) {
+    clearRbtlHighlights();
+    rbtlTargets.forEach(el => el.classList.add('yellow'));
+  }
+}
+
+// Idle render: lay out, paginate, preview page 0's targets in yellow.
+function renderRbtl() {
+  buildRbtlSpans();
+  if (!rbtlText) { rbtlTargets = []; rbtlLines = []; rbtlPageCount = 0; return; }
+  computeRbtlLayout();
+  showPage(0, true);
+}
+
+const rbtlExercise = {
+  statusId: 'rbtl-status',
+  targetCount() { return rbtlTargets.length; },
+  pageCount()   { return rbtlPageCount; },
+  buildLayout() { renderRbtl(); },
+  resetLayout() { renderRbtl(); },
+  // Freeze layout + paginate for this run (re-roll happens per page in beginPage).
+  layoutPages() {
+    buildRbtlSpans();
+    if (!rbtlText) return false;
+    computeRbtlLayout();
+    return rbtlLines.length > 0;
+  },
+  // Make page p the active page: scroll to it, pick its targets, start dark.
+  beginPage(p) {
+    showPage(p, false);
+    clearRbtlHighlights();
+  },
+  paint(i, state) {
+    const el = rbtlTargets[i];
+    if (!el) return;
+    el.classList.remove('yellow', 'green', 'red');
+    if (state !== 'dark') el.classList.add(state);
+  },
+  getTargetEl(i) { return rbtlTargets[i]; },
+  hitRadius(i, rect) {
+    return Math.max(22, rect.width / 2 + 12, rect.height / 2 + 12);
+  },
+};
+
+// ═══════════════════════════════════════════════════════
+//  EXERCISE SELECTION
+// ═══════════════════════════════════════════════════════
+
+function selectExercise(id) {
+  stop();
+  activeExercise = (id === 'rbtl') ? rbtlExercise : dotExercise;
+
+  document.querySelectorAll('.exer-dots').forEach(el => { el.hidden = (id !== 'dots'); });
+  document.querySelectorAll('.exer-rbtl').forEach(el => { el.hidden = (id !== 'rbtl'); });
+  document.getElementById('choose-dots').classList.toggle('active', id === 'dots');
+  document.getElementById('choose-rbtl').classList.toggle('active', id === 'rbtl');
+  document.getElementById('app-title').textContent =
+    id === 'rbtl' ? 'Read Between the Lions' : 'Metronome Timing Visualizer';
+  document.getElementById('app-subtitle').textContent =
+    id === 'rbtl' ? 'Paced eye-movement reading drill' : 'Tick-relative event offset debugger';
+
+  activeExercise.buildLayout();   // must run while the pane is visible (we measure)
+  lightStates = new Array(activeExercise.targetCount()).fill('dark');
+  setStatus('ready');
+}
+
+function setRbtlText(text) {
+  rbtlText = (text || '').trim();
+  if (activeExercise === rbtlExercise && !isPlaying) {
+    renderRbtl();
+    setStatus('ready');
+  }
+}
+
 
 // Readouts
 function updateReadouts() {
@@ -659,7 +1109,8 @@ function updateReadouts() {
 }
 
 function setStatus(msg) {
-  const el = document.getElementById('status-bar');
+  const id = (activeExercise && activeExercise.statusId) || 'status-bar';
+  const el = document.getElementById(id);
   if (el) el.innerHTML = msg;
 }
 
@@ -672,29 +1123,31 @@ function handleHitClick(e) {
 
   const clickX = e.clientX;
   const clickY = e.clientY;
-  const HIT_RADIUS = 80; // px — generous hit zone
 
-  let bestIdx = -1;
-  let bestDist = Infinity;
+  let bestIdx    = -1;
+  let bestDist   = Infinity;
+  let bestRadius = 0;
 
-  for (let i = 0; i < totalTicks; i++) {
+  const n = activeExercise.targetCount();
+  for (let i = 0; i < n; i++) {
     if (lightStates[i] !== 'yellow') continue;
-    const el = document.getElementById(`light-${i}`);
+    const el = activeExercise.getTargetEl(i);
     if (!el) continue;
     const rect = el.getBoundingClientRect();
     const cx = rect.left + rect.width / 2;
     const cy = rect.top + rect.height / 2;
     const dist = Math.hypot(clickX - cx, clickY - cy);
     if (dist < bestDist) {
-      bestDist = dist;
-      bestIdx = i;
+      bestDist   = dist;
+      bestIdx    = i;
+      bestRadius = activeExercise.hitRadius(i, rect);
     }
   }
 
-  if (bestIdx >= 0 && bestDist <= HIT_RADIUS) {
+  if (bestIdx >= 0 && bestDist <= bestRadius) {
     lightHits[bestIdx] = true;
     lightStates[bestIdx] = 'green';
-    renderLights();
+    activeExercise.paint(bestIdx, 'green');
   }
 }
 
@@ -715,12 +1168,79 @@ document.addEventListener('DOMContentLoaded', () => {
     updateReadouts();
   });
 
-  // Ticks slider
+  // Ticks slider (dots)
   document.getElementById('ticks-slider').addEventListener('input', e => {
     totalTicks = +e.target.value;
     document.getElementById('ticks-val').textContent = totalTicks;
-    reset();
     buildLights();
+    reset();
+  });
+
+  // RBTL layout controls — difficulty levers; re-pick targets when idle.
+  document.getElementById('font-slider').addEventListener('input', e => {
+    if (isPlaying) return;
+    rbtlFontPx = +e.target.value;
+    document.getElementById('font-val').textContent = rbtlFontPx;
+    renderRbtl();
+  });
+  document.getElementById('width-slider').addEventListener('input', e => {
+    if (isPlaying) return;
+    rbtlColW = +e.target.value;
+    document.getElementById('width-val').textContent = rbtlColW;
+    renderRbtl();
+  });
+  document.getElementById('lines-slider').addEventListener('input', e => {
+    if (isPlaying) return;
+    rbtlMaxLines = +e.target.value;
+    document.getElementById('lines-val').textContent = rbtlMaxLines;
+    renderRbtl();
+  });
+
+  // RBTL passage dropdown (bundled texts)
+  const sel = document.getElementById('text-select');
+  RBTL_TEXTS.forEach((t, i) => {
+    const opt = document.createElement('option');
+    opt.value = String(i);
+    opt.textContent = t.name;
+    sel.appendChild(opt);
+  });
+  sel.addEventListener('change', e => {
+    if (isPlaying) return;
+    const t = RBTL_TEXTS[+e.target.value];
+    if (t) setRbtlText(t.text);
+  });
+
+  // RBTL custom file load
+  document.getElementById('file-input').addEventListener('change', e => {
+    if (isPlaying) return;
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      // add/refresh a "Custom" option and select it
+      let custom = sel.querySelector('option[value="custom"]');
+      if (!custom) {
+        custom = document.createElement('option');
+        custom.value = 'custom';
+        sel.appendChild(custom);
+      }
+      custom.textContent = '📄 ' + file.name;
+      sel.value = 'custom';
+      setRbtlText(String(reader.result));
+    };
+    reader.readAsText(file);
+  });
+
+  // Exercise chooser
+  document.getElementById('choose-dots').addEventListener('click', () => selectExercise('dots'));
+  document.getElementById('choose-rbtl').addEventListener('click', () => selectExercise('rbtl'));
+
+  // Re-pick RBTL targets on resize (layout-dependent), only when idle.
+  let resizeT = null;
+  window.addEventListener('resize', () => {
+    if (activeExercise !== rbtlExercise || isPlaying) return;
+    clearTimeout(resizeT);
+    resizeT = setTimeout(renderRbtl, 150);
   });
 
   // Buttons
@@ -733,10 +1253,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Init state
   ticksPerSec = 2;
-  lightStates = new Array(totalTicks).fill('dark');
-  buildLights();
+  rbtlText    = RBTL_TEXTS[0].text;  // preload first passage (rendered on switch to RBTL)
+  activeExercise = dotExercise;
+  selectExercise('dots');
   updateReadouts();
-  setStatus('ready');
 });
 </script>
 
