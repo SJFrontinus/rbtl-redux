@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Plan (Beginning): Read Between the Lions Exercise</title>
+<style>
+  :root{
+    --ink:#1d2128; --muted:#5b6470; --faint:#8a93a0;
+    --bg:#f6f7f9; --card:#ffffff; --line:#e6e9ee;
+    --accent:#3a6ea5; --accent-soft:#eaf1f8;
+    --yellow:#e8b339; --green:#3fae6b; --red:#d8534f;
+    --code-bg:#f0f2f5;
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    line-height:1.62; font-size:17px;
+  }
+  .wrap{max-width:860px; margin:0 auto; padding:0 24px 96px}
+  header.doc{
+    margin:0 -24px 40px; padding:56px 24px 40px;
+    background:linear-gradient(135deg,#1f3b2e 0%,#2f6e4f 100%);
+    color:#fff;
+  }
+  header.doc .inner{max-width:860px;margin:0 auto}
+  header.doc .kicker{
+    text-transform:uppercase; letter-spacing:.14em; font-size:12px;
+    font-weight:600; opacity:.8; margin:0 0 12px;
+  }
+  header.doc h1{margin:0; font-size:33px; line-height:1.15; font-weight:700; letter-spacing:-.01em}
+  header.doc .meta{margin:16px 0 0; font-size:14px; opacity:.85; max-width:60ch}
+  main{background:var(--card); border:1px solid var(--line); border-radius:14px;
+    padding:8px 40px 40px; box-shadow:0 1px 2px rgba(20,30,50,.04),0 18px 40px -28px rgba(20,30,50,.25)}
+  h2{
+    font-size:14px; text-transform:uppercase; letter-spacing:.08em;
+    color:var(--accent); font-weight:700; margin:42px 0 14px;
+    padding-bottom:8px; border-bottom:1px solid var(--line);
+  }
+  h2 .num{color:var(--faint); margin-right:8px}
+  h2:first-of-type{margin-top:28px}
+  h3{font-size:16px; margin:22px 0 6px; color:#11161d}
+  h3 .ph{display:inline-block;background:var(--accent-soft);color:var(--accent);
+    font-size:12px;font-weight:700;letter-spacing:.04em;padding:2px 9px;border-radius:20px;margin-right:9px;vertical-align:2px}
+  p{margin:14px 0}
+  ul,ol{margin:12px 0; padding-left:22px}
+  li{margin:8px 0}
+  li::marker{color:var(--faint)}
+  ol li::marker{color:var(--accent); font-weight:600}
+  strong{color:#11161d; font-weight:650}
+  em{color:var(--muted)}
+  code{
+    font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    background:var(--code-bg); padding:2px 6px; border-radius:5px;
+    font-size:.86em; color:#2a3441;
+  }
+  .lede{
+    color:var(--muted); font-style:italic; font-size:15px;
+    margin:18px 0 4px; padding-left:14px; border-left:3px solid var(--accent-soft);
+  }
+  .accept{color:#2f6e4f; font-weight:600}
+  table{border-collapse:collapse; width:100%; margin:18px 0; font-size:15.5px}
+  th,td{text-align:left; padding:11px 14px; border-bottom:1px solid var(--line); vertical-align:top}
+  thead th{background:var(--accent-soft); color:#244a6e; font-size:13px;
+    text-transform:uppercase; letter-spacing:.05em; border-bottom:2px solid #cfe0f0}
+  tbody tr:last-child td{border-bottom:none}
+  td:first-child{white-space:nowrap; color:#11161d}
+  .callout{background:#fbfcfe;border:1px solid var(--line);border-left:3px solid var(--accent);
+    border-radius:8px;padding:4px 20px;margin:18px 0}
+  .risk{border-left-color:var(--red)}
+  .scope{border-left-color:var(--faint);background:#fafafa}
+  .chips{display:inline-flex;gap:6px;vertical-align:middle;margin-left:2px}
+  .chip{display:inline-block;width:13px;height:13px;border-radius:50%;border:1px solid rgba(0,0,0,.12)}
+  .chip.y{background:var(--yellow)} .chip.g{background:var(--green)} .chip.r{background:var(--red)}
+  footer.doc{margin-top:36px;color:var(--faint);font-size:13px;text-align:center}
+  hr{border:none;border-top:1px solid var(--line);margin:34px 0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="doc">
+    <div class="inner">
+      <p class="kicker">Beginning of a Plan · Instructions to Claude</p>
+      <h1>Add the “Read Between the Lions” Exercise</h1>
+      <p class="meta">Drafted 2026-06-01 — front matter for a future planning/build session. Companion notes: <code style="background:rgba(255,255,255,.16);color:#fff">thinking-new-exercise-2026-06-01.md</code></p>
+    </div>
+  </header>
+
+  <main>
+    <h2><span class="num">1</span>Goal</h2>
+    <p>Add a second exercise to the existing single-file app (<code>index.html</code>) — <strong>Read Between the Lions (RBTL)</strong>, an eye-movement training drill for readers (esp. young readers). The app becomes a chooser: the existing dot-timing game is one exercise; RBTL is the other. <strong>Reuse the existing metronome/timing engine as much as possible</strong> — RBTL is "the same process, with words as targets instead of dots."</p>
+    <p>The training effect: load a page of text; on each rendered line, two highlighted target words pace the reader's eye <strong>left → right → next line</strong>, two controlled saccades per line, on the beat. Content/comprehension is not scored — paced traversal is the point.</p>
+    <div class="callout"><p><strong>See the mockup first:</strong> <code>rbtl-mockup-marked.png</code> (repo root) shows the intended result — two target words circled per line on the sample text. That image is the ground-truth statement of the mechanic. Sample text for testing: <code>rbtl-text-sample.txt</code>.</p></div>
+
+    <h2><span class="num">2</span>What Gets Reused (do NOT rebuild)</h2>
+    <p>From <code>index.html</code>:</p>
+    <ul>
+      <li><strong>Web Audio lookahead scheduler</strong> (<code>schedulerLoop</code>, <code>SCHED_MS</code>, <code>LOOKAHEAD</code>) — the drift-free timing spine.</li>
+      <li><strong>3-beat countdown</strong> logic (<code>countdownStartT</code>, <code>startAudioT</code>).</li>
+      <li><strong>Color state machine</strong> — <code>dark → yellow → green|red</code> (yellow = anticipation window, opens <code>offsetSec()</code> before the tick). <span class="chips"><span class="chip y"></span><span class="chip g"></span><span class="chip r"></span></span></li>
+      <li><strong>Hit detection pattern</strong> (<code>handleHitClick</code>) — closest active target within a hit radius; hit→green, miss/late→red.</li>
+      <li><strong>Knobs</strong> — Speed (t/s) and Offset (anticipation lead as fraction of tick).</li>
+      <li>Transport / start controls and overall page chrome.</li>
+    </ul>
+    <p class="lede">The job is to generalize the engine so the targets it drives can be either dots (existing layout) or words (new layout), without forking the timing code.</p>
+
+    <h2><span class="num">3</span>What's New (RBTL-specific)</h2>
+    <ol>
+      <li><strong>Exercise selector</strong> — pick "Timing (dots)" vs "Read Between the Lions". Existing game keeps its current behavior unchanged.</li>
+      <li><strong>Text input</strong> — load text from a file. Start with bundled sample(s) (the LPA sample first) + a <code>.txt</code> file picker. Paste box optional later.</li>
+      <li><strong>Reading pane</strong> with <strong>adjustable font size and column width</strong> — these are difficulty levers (they re-wrap the text and therefore move the targets).</li>
+      <li><strong>Post-render line detection</strong> — after the text is laid out, measure where it visually wrapped (Range/<code>getClientRects</code> over word spans, group by vertical position) to reconstruct the on-screen lines.</li>
+      <li><strong>Randomized target selection</strong> — per visual line, pick a random word in the left half and a random word in the right half; re-rolled every run. Highlights rendered as a <strong>background color behind the word</strong> (yellow → green/red).</li>
+      <li><strong>Target → tick sequencing</strong> — flatten targets in reading order (line0-left, line0-right, line1-left, line1-right, …), one target per metronome tick (⇒ 2 ticks/line), driven by the reused scheduler.</li>
+      <li><strong>Word hit detection</strong> — tap/click the active target word; in-time + within hit zone = green, otherwise red.</li>
+      <li><strong>Pagination</strong> — "number of lines" = total lines in the exercise (default ~20). If more lines than fit the window, split into pages; <strong>re-run the 3-count lead-in at each page break</strong> (with a short pause).</li>
+      <li><strong>Distinct sounds</strong> — the 3-count lead-in uses a <em>different</em> tone from the in-progress metronome tick (at the very start and at every page break). Apply this distinction to the dot game too.</li>
+    </ol>
+
+    <h2><span class="num">4</span>Difficulty Levers (all compose)</h2>
+    <p>Speed (knob) · Offset / anticipation window (knob — smaller = harder) · Font size · Column width · Number of lines (length/pages).</p>
+
+    <h2><span class="num">5</span>Suggested Build Phases</h2>
+    <p class="lede">Order chosen so the app keeps working at every step; the risky rendering-measurement work is isolated.</p>
+
+    <h3><span class="ph">Phase 0</span>Engine extraction &amp; exercise selector</h3>
+    <p>Refactor <code>index.html</code> so the scheduler / countdown / color-state / sound code is shared, and the <em>target source</em> + <em>rendering</em> are pluggable. Add the exercise chooser. <span class="accept">Acceptance:</span> dot game behaves exactly as before, now selected from a menu.</p>
+
+    <h3><span class="ph">Phase 1</span>Text pipeline (static)</h3>
+    <p>Load a bundled sample into an adjustable reading pane (font size + width controls). Measure rendered lines. Pick randomized left/right targets per line and paint static yellow highlights (no timing yet). <span class="accept">Acceptance:</span> open the LPA sample, see two highlighted words per visual line; change width/font and watch targets re-pick.</p>
+
+    <h3><span class="ph">Phase 2</span>Wire to the metronome</h3>
+    <p>Feed the target sequence into the reused scheduler; run the color state machine on word highlights; enable tap/click hit detection on words. <span class="accept">Acceptance:</span> a single-screen run plays start-to-finish with green/red feedback, paced by Speed/Offset.</p>
+
+    <h3><span class="ph">Phase 3</span>Pagination + per-page lead-in</h3>
+    <p>Honor "number of lines"; split into pages by viewport fit; pause and re-run the 3-count at each break. <span class="accept">Acceptance:</span> a 50-line run spans multiple pages with clean lead-ins between them.</p>
+
+    <h3><span class="ph">Phase 4</span>Distinct lead-in vs metronome sounds</h3>
+    <p>Add a second timbre/pitch for the lead-in; apply to both exercises. <span class="accept">Acceptance:</span> lead-in is audibly different from the running tick.</p>
+
+    <h3><span class="ph">Phase 5</span>Polish &amp; content</h3>
+    <p>Hit-zone tuning, edge-case handling, more sample texts (kid-friendly stories), settings layout.</p>
+
+    <h2><span class="num">6</span>Open Decisions (proposed defaults — confirm during build)</h2>
+    <table>
+      <thead><tr><th>Topic</th><th>Proposed default</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Per-line timing</strong></td><td>2 targets/line ⇒ 2 ticks/line; left fires before right. Offset = yellow anticipation lead.</td></tr>
+        <tr><td><strong>Hit zone</strong></td><td>Word bounding box + ~12px padding; min radius for very short words.</td></tr>
+        <tr><td><strong>Edge-case lines</strong></td><td>≥2 words ⇒ 2 targets; 1 word ⇒ 1 target; blank lines skipped and not counted toward "number of lines."</td></tr>
+        <tr><td><strong>Headings</strong></td><td>Treated as normal lines for target purposes (tunable later).</td></tr>
+        <tr><td><strong>File format</strong></td><td>Plain <code>.txt</code>, paragraphs separated by blank lines. Bundle <code>rbtl-text-sample.txt</code> + a story or two.</td></tr>
+        <tr><td><strong>Layout lock</strong></td><td>Freeze font size/width at Start so targets don't shift mid-run; resize is a between-runs lever.</td></tr>
+        <tr><td><strong>Re-roll</strong></td><td>Targets randomized fresh on each Start.</td></tr>
+        <tr><td><strong>Page-break pause</strong></td><td>Short pause then full 3-count; exact pause length TBD by feel.</td></tr>
+      </tbody>
+    </table>
+
+    <h2><span class="num">7</span>Known Technical Risks / To Watch</h2>
+    <div class="callout risk">
+      <ul>
+        <li><strong>Rendered-line measurement</strong> is the trickiest part — wrapping detection must be reliable across fonts/widths. Wrap each word in a measurable span and group by vertical offset.</li>
+        <li><strong>Mid-run resize</strong> would invalidate target positions → lock layout once a run starts.</li>
+        <li><strong>Touch vs mouse</strong> — design hit detection for both pointer types (tablet is a primary target device for kids).</li>
+        <li><strong>Tiny/last page</strong> — a final page with very few lines should still get a lead-in and end cleanly.</li>
+      </ul>
+    </div>
+
+    <h2><span class="num">8</span>Out of Scope (for now)</h2>
+    <div class="callout scope">
+      <p>Comprehension testing, scoring/streak persistence, multi-user profiles, authored story library/CMS. Note them as future directions; don't build yet.</p>
+    </div>
+  </main>
+
+  <footer class="doc">rbtl-redux · beginning-of-a-plan · 2026-06-01</footer>
+</div>
+</body>
+</html>

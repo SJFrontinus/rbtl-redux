@@ -37,3 +37,15 @@ Everything lives in `index.html` — CSS variables, layout, and JavaScript in on
 - `lightStates[]` — per-tick color state (`'dark'|'yellow'|'green'|'red'`)
 - `lightHits[]` — whether user clicked during each yellow window
 - `schedTick`, `schedCountdown` — scheduler lookahead cursors
+
+## Planned work
+
+A **second exercise** is planned: **"Read Between the Lions" (RBTL)** — an eye-movement
+reading drill that reuses this same timing engine, with **words in a page of text** as the
+targets instead of dots. The app will become an exercise chooser (dot game + RBTL).
+
+Before building, read these (in the repo root):
+- **`PLAN-rbtl-exercise.md`** — the phased build plan and instructions (start here).
+- **`thinking-new-exercise-2026-06-01.md`** — the design rationale / decisions behind the plan.
+- **`rbtl-mockup-marked.png`** — annotated mockup: two target words circled per line.
+- **`rbtl-text-sample.txt`** — sample passage used for testing the text pipeline.

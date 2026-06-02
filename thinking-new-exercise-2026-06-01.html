@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Thinking: Adding a New Exercise — RBTL</title>
+<style>
+  :root{
+    --ink:#1d2128; --muted:#5b6470; --faint:#8a93a0;
+    --bg:#f6f7f9; --card:#ffffff; --line:#e6e9ee;
+    --accent:#3a6ea5; --accent-soft:#eaf1f8;
+    --yellow:#e8b339; --green:#3fae6b; --red:#d8534f;
+    --code-bg:#f0f2f5;
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    line-height:1.62; font-size:17px;
+  }
+  .wrap{max-width:840px; margin:0 auto; padding:0 24px 96px}
+  header.doc{
+    margin:0 -24px 40px; padding:56px 24px 40px;
+    background:linear-gradient(135deg,#2f4858 0%,#3a6ea5 100%);
+    color:#fff;
+  }
+  header.doc .inner{max-width:840px;margin:0 auto}
+  header.doc .kicker{
+    text-transform:uppercase; letter-spacing:.14em; font-size:12px;
+    font-weight:600; opacity:.78; margin:0 0 12px;
+  }
+  header.doc h1{margin:0; font-size:34px; line-height:1.15; font-weight:700; letter-spacing:-.01em}
+  header.doc .meta{margin:14px 0 0; font-size:14px; opacity:.82}
+  main{background:var(--card); border:1px solid var(--line); border-radius:14px;
+    padding:8px 40px 40px; box-shadow:0 1px 2px rgba(20,30,50,.04),0 18px 40px -28px rgba(20,30,50,.25)}
+  h2{
+    font-size:14px; text-transform:uppercase; letter-spacing:.08em;
+    color:var(--accent); font-weight:700; margin:40px 0 14px;
+    padding-bottom:8px; border-bottom:1px solid var(--line);
+  }
+  h2:first-of-type{margin-top:28px}
+  p{margin:14px 0}
+  ul,ol{margin:12px 0; padding-left:22px}
+  li{margin:8px 0}
+  li::marker{color:var(--faint)}
+  ol li::marker{color:var(--accent); font-weight:600}
+  strong{color:#11161d; font-weight:650}
+  em{color:var(--muted)}
+  code{
+    font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    background:var(--code-bg); padding:2px 6px; border-radius:5px;
+    font-size:.86em; color:#2a3441;
+  }
+  .lede{
+    color:var(--muted); font-style:italic; font-size:15px;
+    margin:18px 0 4px; padding-left:14px; border-left:3px solid var(--accent-soft);
+  }
+  .chips{display:inline-flex;gap:6px;vertical-align:middle;margin-left:2px}
+  .chip{display:inline-block;width:13px;height:13px;border-radius:50%;border:1px solid rgba(0,0,0,.12)}
+  .chip.y{background:var(--yellow)} .chip.g{background:var(--green)} .chip.r{background:var(--red)}
+  .seq{font-weight:600}
+  footer.doc{margin-top:36px;color:var(--faint);font-size:13px;text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="doc">
+    <div class="inner">
+      <p class="kicker">Thinking-Partner Session · Notes</p>
+      <h1>Adding a New Exercise to <code style="background:rgba(255,255,255,.16);color:#fff">rbtl-redux</code></h1>
+      <p class="meta">Started 2026-06-01 — the journey of how the idea clarified</p>
+    </div>
+  </header>
+
+  <main>
+    <h2>The Goal (as stated)</h2>
+    <ul>
+      <li>Add a <strong>new exercise</strong> alongside the existing "basic exercise" in <code>index.html</code>.</li>
+      <li>This session: develop the <em>beginnings of a plan</em> — organize instructions to Claude before going into planning/build mode. Be more complete than a one-line ask.</li>
+    </ul>
+
+    <h2>What Exists Now</h2>
+    <ul>
+      <li><code>index.html</code> — single-file "Metronome Timing Visualizer." No build, no deps.</li>
+      <li><strong>Basic exercise</strong> = tick-relative hit-detection game: lights cycle dark→yellow→green/red; click during yellow anticipation window; Web Audio scheduler for drift-free timing.</li>
+      <li>Subsystems: rotary knobs (Speed, Offset), Web Audio lookahead scheduler, 3-beat countdown, light state machine, hit detection, zigzag light layout.</li>
+      <li><code>rbtl-text-sample</code> (untracked) — dense prose on Lp(a) vs LDL atherogenicity. Likely <em>content</em> for the new exercise.</li>
+    </ul>
+
+    <h2>Resolved — The Exercise (clear now)</h2>
+    <ul>
+      <li><strong>RBTL = "Read Between the Lions"</strong> — a Lions Club literacy project. Cute name, not literal.</li>
+      <li>A reading-improvement exercise for <strong>eye-movement training</strong>, esp. <em>young readers</em>. Content/comprehension is NOT the point — it's about traversing a page of text in a paced, rhythmic fashion.</li>
+      <li><strong>Mechanic:</strong> load a page of text → on each line pick <strong>two target words</strong> (one ~left half, one ~right half) → those words get the <strong>same 3-color sequence as the dots</strong>, rendered as a <strong>background highlight behind the word</strong>: <span class="seq">yellow (anticipation) → green (hit) / red (miss)</span> <span class="chips"><span class="chip y"></span><span class="chip g"></span><span class="chip r"></span></span></li>
+      <li>The reader's eye is paced <strong>left target → right target → next line left → right …</strong> = two controlled saccades per line, on the beat. <em>This rhythmic traversal is the training.</em></li>
+      <li><strong>"Almost identical in process to the existing program — words as targets instead of dots."</strong></li>
+      <li><strong>Reuses the metronome engine wholesale</strong>: scheduler, 3-beat countdown, color state machine, Speed/Offset knobs all carry over.</li>
+      <li><strong>One app, exercise picker.</strong> Existing timing game = one exercise; RBTL = another.</li>
+    </ul>
+
+    <h2>Decisions (locked this session)</h2>
+    <ol>
+      <li><strong>Real tap/click.</strong> Reader attempts to tap/click each target word in rhythm. Too late OR too far = <strong>red (miss)</strong>; in time + close enough = <strong>green (hit)</strong>. Same hit-detection spirit as the dot game (a hit zone around the target).</li>
+      <li><strong>Targets selected post-render.</strong> Lay out the text first, detect visual line wraps, then pick the left/right target per visual line. <strong>Layout size + width are user-adjustable and are themselves a difficulty lever</strong> — wider/narrower or bigger/smaller font re-wraps the text, moving the targets.</li>
+      <li><strong>"Number of lines" setting</strong> (carried over UI style). If more lines than fit the window → <strong>paginate</strong>. At each page break, <strong>re-run the 3-count lead-in</strong> (likely with a pause). May need experimentation on the break pause.</li>
+      <li><strong>Distinct sounds:</strong> the <strong>3-count lead-in</strong> gets a <em>different sound</em> from the <strong>in-progress metronome tick</strong> — applies both at the very start and at every pagination break. (New requirement, applies conceptually to the dot game too.)</li>
+    </ol>
+
+    <h2>Decisions (cont.)</h2>
+    <ol start="5">
+      <li><strong>Target selection = RANDOMIZED.</strong> Each run, pick a random word in the left half and a random word in the right half of each visual line; re-rolled every Start. (Anti-memorization; variety.)</li>
+      <li><strong>"Number of lines" = total lines in the whole exercise.</strong> Default ~20 (usually fits one page). User can choose 50 / 100+ for a multi-page challenge. Good story content is the motivator for longer runs.</li>
+    </ol>
+
+    <h2>Proposed Defaults (to confirm during build, not blocking)</h2>
+    <ul>
+      <li><strong>Per-line timing:</strong> 2 targets/line ⇒ 2 ticks/line; left target fires before right. Offset knob keeps its anticipation-lead role.</li>
+      <li><strong>Hit zone:</strong> word bounding box + ~12px padding (min radius for tiny words).</li>
+      <li><strong>Edge-case lines:</strong> ≥2 words ⇒ 2 targets; 1 word ⇒ 1 target; blank lines skipped, not counted toward "number of lines."</li>
+      <li><strong>File loading:</strong> start with bundled sample text(s) (LPA sample first) + a file picker for .txt; paste optional later.</li>
+      <li><strong>Layout lock:</strong> freeze layout (font size/width) at Start so targets don't shift mid-run; resizing is a between-runs difficulty lever.</li>
+    </ul>
+
+    <h2>Difficulty Levers (emerged)</h2>
+    <p>Speed (knob) · Offset/anticipation window (knob) · Font size · Column width · Number of lines. All compose.</p>
+
+    <h2>Deliverable</h2>
+    <ul>
+      <li>Plan doc written to repo: <code>PLAN-rbtl-exercise.md</code> — organized instructions to Claude (goal, reuse, new work, phased build, open decisions w/ defaults).</li>
+    </ul>
+
+    <h2>Connections</h2>
+    <ul>
+      <li>Classic reading-fluency tech: metronome pacing, guided fixation points, reducing <em>regressions</em> (backward eye movements), training steady left-to-right saccades. Two-fixations-per-line is a recognized fluency drill.</li>
+    </ul>
+
+    <h2>Next Steps</h2>
+    <ul>
+      <li><em>(only if they arise naturally)</em></li>
+    </ul>
+  </main>
+
+  <footer class="doc">rbtl-redux · thinking-partner notes · 2026-06-01</footer>
+</div>
+</body>
+</html>
