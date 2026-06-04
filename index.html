@@ -1020,6 +1020,7 @@ let rbtlLines     = [];  // array of visual lines; each is an array of word span
 let rbtlLineH     = 0;   // px stride of one visual line (tight, intra-paragraph)
 let rbtlLineTops  = [];  // content-relative top px of each visual line (stable @ scrollTop 0)
 let rbtlContentBottom = 0; // content-relative bottom px of the last line
+let rbtlMidX      = 0;   // viewport x of the column's horizontal midpoint
 let rbtlTitleLineIdx  = -1; // index of the heading line (no targets), or -1
 let rbtlPerPage   = 0;   // visual lines per page
 let rbtlPageCount = 0;
@@ -1109,7 +1110,9 @@ function computeRbtlLayout() {
 
   // Capture stable content-relative geometry while the pane is unclipped
   // (buildRbtlSpans leaves it height:auto, scrollTop 0).
-  const paneTop = pane.getBoundingClientRect().top;
+  const paneRect = pane.getBoundingClientRect();
+  const paneTop = paneRect.top;
+  rbtlMidX = paneRect.left + paneRect.width / 2;  // column horizontal midpoint
   rbtlLineTops = lines.map(ln => ln[0].getBoundingClientRect().top - paneTop);
   rbtlContentBottom = lines.length
     ? Math.max(...lines[lines.length - 1].map(s => s.getBoundingClientRect().bottom)) - paneTop
@@ -1146,24 +1149,42 @@ function computeRbtlLayout() {
     }
     pane.style.height = clipH + 'px';
     pane.style.overflow = 'hidden';
+    // A short final page is shorter than clipH; without extra scroll room the
+    // browser clamps scrollTop and earlier (untargeted) lines bleed in at the
+    // top. A bottom spacer extends scrollHeight so every page's first line can
+    // reach the top. (A child element is box-sizing-safe, unlike padding.)
+    const spacer = document.createElement('div');
+    spacer.className = 'rbtl-spacer';
+    spacer.setAttribute('aria-hidden', 'true');
+    spacer.style.height = clipH + 'px';
+    pane.appendChild(spacer);
   }
 }
 
-// Pick a random word in the left half and one in the right half of each line
-// on page p; returns the chosen spans in reading order. The heading line gets
+// Targets are split by horizontal position, not word index: one word from the
+// left half of the column and one from the right half. A short line whose text
+// never reaches the right half (e.g. a paragraph's last line) gets a single
+// target — no second target is placed in the left half. The heading line gets
 // no targets.
 function pickPageTargets(p) {
   const start = p * rbtlPerPage;
   const end   = Math.min(start + rbtlPerPage, rbtlLines.length);
+  const pick  = arr => arr[Math.floor(Math.random() * arr.length)];
+  const centerX = s => { const r = s.getBoundingClientRect(); return r.left + r.width / 2; };
   const targets = [];
   for (let li = start; li < end; li++) {
     if (li === rbtlTitleLineIdx) continue;
     const line = rbtlLines[li];
-    if (line.length === 1) { targets.push(line[0]); continue; }
-    const mid   = Math.ceil(line.length / 2);
-    const left  = line[Math.floor(Math.random() * mid)];
-    const right = line[mid + Math.floor(Math.random() * (line.length - mid))];
-    targets.push(left, right);
+    const leftWords = [], rightWords = [];
+    for (const s of line) (centerX(s) < rbtlMidX ? leftWords : rightWords).push(s);
+    if (rightWords.length === 0) {
+      // Line stays in the left half — a single target only.
+      targets.push(pick(leftWords.length ? leftWords : line));
+    } else if (leftWords.length === 0) {
+      targets.push(pick(rightWords));
+    } else {
+      targets.push(pick(leftWords), pick(rightWords));
+    }
   }
   return targets;
 }
