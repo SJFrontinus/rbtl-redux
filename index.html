@@ -310,6 +310,26 @@ text-align: right;
 padding-right: 2px;
 }
 .status-bar span { color: var(--accent); }
+
+/* ─── In-play control bar ─── */
+.playbar {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  align-items: center;
+  margin: 0 auto 14px;
+  padding: 10px;
+  max-width: 1100px;
+}
+.playbar .btn { min-width: 120px; }
+.playbar #pb-toggle.resume { background: var(--green); color: #060c10; }
+.playbar #pb-toggle.done   { background: var(--muted); color: var(--dim); cursor: default; }
+
+/* While a run is active, collapse the whole setup area for more target room. */
+body.playing header,
+body.playing .chooser,
+body.playing .controls { display: none; }
+body:not(.playing) .playbar { display: none; }
 </style>
 
 </head>
@@ -325,6 +345,14 @@ padding-right: 2px;
 <div class="chooser">
   <button class="chooser-btn active" id="choose-dots" data-exercise="dots">Timing (Dots)</button>
   <button class="chooser-btn"        id="choose-rbtl" data-exercise="rbtl">Read Between the Lions</button>
+</div>
+
+<!-- In-play control bar (shown only while running) -->
+
+<div class="playbar">
+  <button class="btn btn-stop"  id="pb-toggle">■ STOP</button>
+  <button class="btn btn-reset" id="pb-reset">↺ RESET</button>
+  <button class="btn btn-reset" id="pb-config">⚙ CONFIG</button>
 </div>
 
 <!-- Controls -->
@@ -368,9 +396,15 @@ padding-right: 2px;
   </div>
   <div class="ctrl-divider exer-rbtl" hidden></div>
   <div class="ticks-group exer-rbtl" hidden>
-    <label for="lines-slider">Lines</label>
+    <label for="lines-slider">Max Lines</label>
     <input type="range" id="lines-slider" min="4" max="120" value="20">
     <div class="ticks-val" id="lines-val">20</div>
+  </div>
+  <div class="ctrl-divider exer-rbtl" hidden></div>
+  <div class="ticks-group exer-rbtl" hidden>
+    <label for="linespp-slider">Lines / Page</label>
+    <input type="range" id="linespp-slider" min="1" max="40" value="8">
+    <div class="ticks-val" id="linespp-val">8</div>
   </div>
   <div class="ctrl-divider exer-rbtl" hidden></div>
   <div class="ticks-group exer-rbtl" hidden>
@@ -381,6 +415,7 @@ padding-right: 2px;
   <div class="btn-group exer-rbtl" hidden>
     <label class="btn btn-reset" for="file-input" style="text-align:center; cursor:pointer;">📄 LOAD .TXT</label>
     <input type="file" id="file-input" accept=".txt,text/plain" hidden>
+    <button class="btn btn-reset" id="debug-toggle" style="margin-top:6px;">🐞 DEBUG: OFF</button>
   </div>
 
   <div class="ctrl-divider"></div>
@@ -522,6 +557,7 @@ function makeKnob(id, min, max, initVal, decimals, onChange) {
 
 let audioCtx      = null;
 let isPlaying     = false;
+let isPaused      = false;
 let startAudioT   = 0;
 let schedTick     = 0;
 let schedTimer    = null;
@@ -694,6 +730,7 @@ function scheduleTickN(n) {
         lightTimeouts.push(adv);
       } else {
         isPlaying = false;
+        setToggle('done');
         setStatus('done');
       }
     }, phantomDelay);
@@ -734,23 +771,97 @@ let schedCountdown = 0;
 //  TRANSPORT
 // ═══════════════════════════════════════════════════════
 
+// Toggle button (Stop ↔ Resume ↔ done) on the in-play bar.
+function setToggle(mode) {
+  const b = document.getElementById('pb-toggle');
+  if (!b) return;
+  b.classList.remove('resume', 'done');
+  if (mode === 'resume')   { b.textContent = '▶ RESUME'; b.classList.add('resume'); }
+  else if (mode === 'done'){ b.textContent = '✓ DONE';   b.classList.add('done'); }
+  else                     { b.textContent = '■ STOP'; }
+}
+
+function enterPlayMode() { document.body.classList.add('playing'); }
+function exitPlayMode()  { document.body.classList.remove('playing'); }
+
 function play() {
   if (isPlaying) return;
 
-  // Freeze layout + paginate the run; abort if there's nothing to drive.
+  // Collapse the setup area first so the layout measures the expanded pane.
+  enterPlayMode();
+
+  // Freeze layout + paginate the run; abort (and restore config) if nothing to drive.
   if (activeExercise.layoutPages && !activeExercise.layoutPages()) {
+    exitPlayMode();
     setStatus('no targets');
     return;
   }
-  if (activeExercise.pageCount() < 1) { setStatus('no targets'); return; }
+  if (activeExercise.pageCount() < 1) { exitPlayMode(); setStatus('no targets'); return; }
 
   const ac = ensureCtx();
   if (ac.state === 'suspended') ac.resume();
 
   isPlaying = true;
+  isPaused  = false;
   curPage   = 0;
   clearAllTimeouts();
+  setToggle('stop');
   startPage(0);
+}
+
+// Pause: halt the scheduler, freeze the current colors. (Audio clicks already
+// queued within the lookahead may still sound — acceptable.)
+function pauseRun() {
+  if (!isPlaying || isPaused) return;
+  clearTimeout(schedTimer);
+  clearAllTimeouts();
+  isPaused = true;
+  setToggle('resume');
+  setStatus('paused');
+}
+
+// Resume: instant go from the first unresolved target on the current page —
+// re-anchor the timeline so it fires immediately, skipping the 3-2-1 count-in.
+function resumeRun() {
+  if (!isPlaying || !isPaused) return;
+  const ac = ensureCtx();
+  if (ac.state === 'suspended') ac.resume();
+
+  let k = lightStates.findIndex(s => s === 'yellow' || s === 'dark');
+  if (k < 0) return;  // page already fully resolved; nothing to resume
+
+  startAudioT     = ac.currentTime + 0.03 - k * tickSec() + offsetSec();
+  schedTick       = k;
+  schedCountdown  = COUNTDOWN;  // no count-in on resume
+  isPaused        = false;
+  setToggle('stop');
+  setStatus(`target ${k + 1} / ${lightStates.length}`);
+  schedulerLoop();
+}
+
+// Reset (in-play): restart the whole run from page 1 with freshly rolled targets.
+function restartRun() {
+  clearTimeout(schedTimer);
+  clearAllTimeouts();
+  const ac = ensureCtx();
+  if (ac.state === 'suspended') ac.resume();
+  isPlaying = true;
+  isPaused  = false;
+  curPage   = 0;
+  setToggle('stop');
+  startPage(0);
+}
+
+// Config: leave the run and restore the setup area with its idle preview.
+function exitToConfig() {
+  clearTimeout(schedTimer);
+  clearAllTimeouts();
+  isPlaying = false;
+  isPaused  = false;
+  exitPlayMode();
+  if (activeExercise.resetLayout) activeExercise.resetLayout();
+  lightStates = new Array(activeExercise.targetCount()).fill('dark');
+  setStatus('ready');
 }
 
 // Run one page: prepare its targets, then schedule its lead-in + ticks. Each
@@ -900,12 +1011,17 @@ let rbtlText    = '';
 let rbtlTargets = [];   // current page's chosen word spans, reading order
 let rbtlFontPx  = 22;
 let rbtlColW    = 600;
-let rbtlMaxLines = 20;  // total visual lines in the whole exercise
+let rbtlMaxLines = 20;     // hard cap on total visual lines used from the passage
+let rbtlLinesPerPage = 8;  // requested pagination chunk (clamped to what fits)
+let rbtlDebug    = false;  // setup-only: reveal page-0 targets in yellow when true
 
 // Pagination state (computed by computeRbtlLayout)
 let rbtlLines     = [];  // array of visual lines; each is an array of word spans
-let rbtlLineH     = 0;   // px height of one visual line
-let rbtlPerPage   = 0;   // visual lines that fit one page
+let rbtlLineH     = 0;   // px stride of one visual line (tight, intra-paragraph)
+let rbtlLineTops  = [];  // content-relative top px of each visual line (stable @ scrollTop 0)
+let rbtlContentBottom = 0; // content-relative bottom px of the last line
+let rbtlTitleLineIdx  = -1; // index of the heading line (no targets), or -1
+let rbtlPerPage   = 0;   // visual lines per page
 let rbtlPageCount = 0;
 
 function rbtlPane() { return document.getElementById('rbtl-pane'); }
@@ -925,10 +1041,12 @@ function buildRbtlSpans() {
   pane.classList.remove('empty');
 
   const paras = rbtlText.split(/\n\s*\n/);
+  let firstPara = true;
   for (const para of paras) {
     const text = para.replace(/\s+/g, ' ').trim();
     if (!text) continue;
     const p = document.createElement('p');
+    if (firstPara) { p.classList.add('rbtl-heading'); firstPara = false; }
     const words = text.split(' ');
     words.forEach((word, idx) => {
       const span = document.createElement('span');
@@ -969,7 +1087,8 @@ function truncateAfterLine(lines, maxLines) {
   while (p) { const n = p.nextElementSibling; p.remove(); p = n; }
 }
 
-// Detect lines, cap to rbtlMaxLines, then compute page size from viewport fit.
+// Detect lines, cap to rbtlMaxLines, then paginate by the requested chunk
+// (clamped to what physically fits the visible pane).
 function computeRbtlLayout() {
   const pane = rbtlPane();
   let lines = detectLines();
@@ -979,33 +1098,66 @@ function computeRbtlLayout() {
   }
   rbtlLines = lines;
 
-  rbtlLineH = (lines.length >= 2)
-    ? (lines[1][0].getBoundingClientRect().top - lines[0][0].getBoundingClientRect().top)
-    : (rbtlFontPx * 1.9);
-  if (rbtlLineH <= 0) rbtlLineH = rbtlFontPx * 1.9;
+  // Heading: treat the first paragraph as a title (no targets) only when it
+  // occupies a single visual line, so a title-less wrapping first paragraph
+  // isn't wrongly skipped.
+  rbtlTitleLineIdx = -1;
+  if (lines.length) {
+    const firstP = lines[0][0].parentElement;
+    if (lines.length < 2 || lines[1][0].parentElement !== firstP) rbtlTitleLineIdx = 0;
+  }
 
-  const budget = Math.max(150, Math.min(window.innerHeight * 0.5, 10000));
-  rbtlPerPage = Math.max(1, Math.floor(budget / rbtlLineH));
+  // Capture stable content-relative geometry while the pane is unclipped
+  // (buildRbtlSpans leaves it height:auto, scrollTop 0).
+  const paneTop = pane.getBoundingClientRect().top;
+  rbtlLineTops = lines.map(ln => ln[0].getBoundingClientRect().top - paneTop);
+  rbtlContentBottom = lines.length
+    ? Math.max(...lines[lines.length - 1].map(s => s.getBoundingClientRect().bottom)) - paneTop
+    : 0;
 
-  if (rbtlPerPage >= lines.length) {
-    rbtlPerPage   = Math.max(1, lines.length);
-    rbtlPageCount = lines.length ? 1 : 0;
+  // Tight single-line stride = smallest positive gap (paragraph breaks are larger).
+  let stride = Infinity;
+  for (let i = 1; i < rbtlLineTops.length; i++) {
+    const d = rbtlLineTops[i] - rbtlLineTops[i - 1];
+    if (d > 0 && d < stride) stride = d;
+  }
+  rbtlLineH = isFinite(stride) ? stride : rbtlFontPx * 1.5;
+
+  // Chunk = requested Lines/Page, clamped to what fits the visible pane. Play
+  // mode hides the setup area, so more vertical room is available then.
+  const playing = document.body.classList.contains('playing');
+  const budget = Math.max(150, window.innerHeight * (playing ? 0.85 : 0.5) - 24);
+  const viewportFit = Math.max(1, Math.floor(budget / rbtlLineH));
+  rbtlPerPage = Math.max(1, Math.min(rbtlLinesPerPage, viewportFit, lines.length || 1));
+  rbtlPageCount = lines.length ? Math.ceil(lines.length / rbtlPerPage) : 0;
+
+  if (rbtlPageCount <= 1) {
     pane.style.height = 'auto';
     pane.style.overflow = 'visible';
   } else {
-    rbtlPageCount = Math.ceil(lines.length / rbtlPerPage);
-    pane.style.height = (rbtlPerPage * rbtlLineH) + 'px';
+    // Fixed clip height = tallest page (by real line tops), so no page is cut
+    // and the pane doesn't jump between pages.
+    let clipH = 0;
+    for (let p = 0; p < rbtlPageCount; p++) {
+      const s = p * rbtlPerPage;
+      const e = Math.min(s + rbtlPerPage, lines.length);
+      const h = (e < lines.length ? rbtlLineTops[e] : rbtlContentBottom) - rbtlLineTops[s];
+      if (h > clipH) clipH = h;
+    }
+    pane.style.height = clipH + 'px';
     pane.style.overflow = 'hidden';
   }
 }
 
 // Pick a random word in the left half and one in the right half of each line
-// on page p; returns the chosen spans in reading order.
+// on page p; returns the chosen spans in reading order. The heading line gets
+// no targets.
 function pickPageTargets(p) {
   const start = p * rbtlPerPage;
   const end   = Math.min(start + rbtlPerPage, rbtlLines.length);
   const targets = [];
   for (let li = start; li < end; li++) {
+    if (li === rbtlTitleLineIdx) continue;
     const line = rbtlLines[li];
     if (line.length === 1) { targets.push(line[0]); continue; }
     const mid   = Math.ceil(line.length / 2);
@@ -1023,7 +1175,8 @@ function clearRbtlHighlights() {
 
 // Scroll to page p, re-roll its targets into rbtlTargets, optionally preview them.
 function showPage(p, highlight) {
-  rbtlPane().scrollTop = p * rbtlPerPage * rbtlLineH;
+  const start = p * rbtlPerPage;
+  rbtlPane().scrollTop = rbtlLineTops[start] || 0;
   rbtlTargets = pickPageTargets(p);
   if (highlight) {
     clearRbtlHighlights();
@@ -1031,12 +1184,12 @@ function showPage(p, highlight) {
   }
 }
 
-// Idle render: lay out, paginate, preview page 0's targets in yellow.
+// Idle render: lay out, paginate; preview page 0's targets only in Debug mode.
 function renderRbtl() {
   buildRbtlSpans();
   if (!rbtlText) { rbtlTargets = []; rbtlLines = []; rbtlPageCount = 0; return; }
   computeRbtlLayout();
-  showPage(0, true);
+  showPage(0, rbtlDebug);
 }
 
 const rbtlExercise = {
@@ -1075,6 +1228,8 @@ const rbtlExercise = {
 
 function selectExercise(id) {
   stop();
+  isPaused = false;
+  exitPlayMode();
   activeExercise = (id === 'rbtl') ? rbtlExercise : dotExercise;
 
   document.querySelectorAll('.exer-dots').forEach(el => { el.hidden = (id !== 'dots'); });
@@ -1195,6 +1350,20 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('lines-val').textContent = rbtlMaxLines;
     renderRbtl();
   });
+  document.getElementById('linespp-slider').addEventListener('input', e => {
+    if (isPlaying) return;
+    rbtlLinesPerPage = +e.target.value;
+    document.getElementById('linespp-val').textContent = rbtlLinesPerPage;
+    renderRbtl();
+  });
+
+  // Debug toggle — reveal page-0 targets at setup (setup preview only).
+  document.getElementById('debug-toggle').addEventListener('click', e => {
+    rbtlDebug = !rbtlDebug;
+    e.currentTarget.textContent = '🐞 DEBUG: ' + (rbtlDebug ? 'ON' : 'OFF');
+    e.currentTarget.classList.toggle('active', rbtlDebug);
+    if (activeExercise === rbtlExercise && !isPlaying) renderRbtl();
+  });
 
   // RBTL passage dropdown (bundled texts)
   const sel = document.getElementById('text-select');
@@ -1243,10 +1412,18 @@ document.addEventListener('DOMContentLoaded', () => {
     resizeT = setTimeout(renderRbtl, 150);
   });
 
-  // Buttons
+  // Config buttons
   document.getElementById('btn-play').addEventListener('click', play);
   document.getElementById('btn-stop').addEventListener('click', stop);
   document.getElementById('btn-reset').addEventListener('click', reset);
+
+  // In-play bar buttons
+  document.getElementById('pb-toggle').addEventListener('click', () => {
+    if (!isPlaying) return;           // ignore once a run has finished (done)
+    isPaused ? resumeRun() : pauseRun();
+  });
+  document.getElementById('pb-reset').addEventListener('click', restartRun);
+  document.getElementById('pb-config').addEventListener('click', exitToConfig);
 
   // Hit detection — click/tap anywhere on the page
   document.addEventListener('pointerdown', handleHitClick);
