@@ -338,15 +338,15 @@ body:not(.playing) .playbar { display: none; }
 <body>
 
 <header>
-  <h1 id="app-title">Metronome Timing Visualizer</h1>
-  <div class="subtitle" id="app-subtitle">Tick-relative event offset debugger</div>
+  <h1 id="app-title">Read Between the Lions</h1>
+  <div class="subtitle" id="app-subtitle">Paced eye-movement reading drills</div>
 </header>
 
 <!-- Exercise chooser -->
 
 <div class="chooser">
-  <button class="chooser-btn active" id="choose-dots" data-exercise="dots">Timing (Dots)</button>
-  <button class="chooser-btn"        id="choose-rbtl" data-exercise="rbtl">Read Between the Lions</button>
+  <button class="chooser-btn active" id="choose-dots" data-exercise="dots">Dots</button>
+  <button class="chooser-btn"        id="choose-rbtl" data-exercise="rbtl">Text</button>
 </div>
 
 <!-- In-play control bar (shown only while running) -->
@@ -375,9 +375,9 @@ body:not(.playing) .playbar { display: none; }
 
   <div class="ticks-group">
     <label for="offset-slider">Offset (early)</label>
-    <input type="range" id="offset-slider" min="0" max="100" step="0.5" value="0">
+    <input type="range" id="offset-slider" min="0" max="100" step="0.5" value="2">
     <div class="readout-row">
-      <input type="number" id="offset-num" class="val-input" min="0" max="100" step="0.5" value="0">
+      <input type="number" id="offset-num" class="val-input" min="0" max="100" step="0.5" value="2">
       <span class="val-unit">%</span>
     </div>
     <div class="val-sub" id="offset-ms">0.00 ms</div>
@@ -474,7 +474,7 @@ let lightHits     = [];  // true if user clicked while yellow
 
 let ticksPerSec   = 4;    // overridden by setSpeed() at init
 let totalTicks    = 20;
-let offsetFrac    = 0;    // 0..1 (fraction of tick interval)
+let offsetFrac    = 0.02; // 0..1 (fraction of tick interval); default ~10ms at 2 t/s
 
 // The engine drives an abstract target source. An "exercise" adapter maps the
 // engine's per-target state to concrete DOM (dots or words). Set in init().
@@ -1165,9 +1165,9 @@ function selectExercise(id) {
   document.getElementById('choose-dots').classList.toggle('active', id === 'dots');
   document.getElementById('choose-rbtl').classList.toggle('active', id === 'rbtl');
   document.getElementById('app-title').textContent =
-    id === 'rbtl' ? 'Read Between the Lions' : 'Metronome Timing Visualizer';
+    'Read Between the Lions';
   document.getElementById('app-subtitle').textContent =
-    id === 'rbtl' ? 'Paced eye-movement reading drill' : 'Tick-relative event offset debugger';
+    'Paced eye-movement reading drills';
 
   activeExercise.buildLayout();   // must run while the pane is visible (we measure)
   lightStates = new Array(activeExercise.targetCount()).fill('dark');
