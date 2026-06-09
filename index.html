@@ -78,33 +78,6 @@ border-radius: 10px;
 padding: 18px 22px;
 }
 
-/* ─── Rotary knob ─── */
-.knob-group {
-display: flex;
-flex-direction: column;
-align-items: center;
-gap: 5px;
-}
-.knob-label {
-font-size: 0.58rem;
-letter-spacing: 0.16em;
-text-transform: uppercase;
-color: var(--dim);
-}
-canvas.knob {
-cursor: ns-resize;
-display: block;
-}
-canvas.knob:hover { filter: brightness(1.1); }
-.knob-readout {
-font-size: 0.68rem;
-color: var(--accent);
-text-align: center;
-white-space: pre;
-line-height: 1.5;
-min-height: 2.2em;
-}
-
 /* ─── Ticks control ─── */
 .ticks-group {
 display: flex;
@@ -134,10 +107,39 @@ width: 14px; height: 14px;
 background: var(--accent);
 border-radius: 50%;
 }
-.ticks-val {
+.ticks-val, .val-input {
+font-family: 'Space Mono', monospace;
 font-size: 0.9rem;
 font-weight: 700;
 color: var(--accent);
+}
+.val-input {
+background: transparent;
+border: none;
+border-bottom: 1px solid var(--muted);
+text-align: center;
+width: 6ch;
+outline: none;
+padding: 0 2px;
+-moz-appearance: textfield;
+}
+.val-input::-webkit-outer-spin-button,
+.val-input::-webkit-inner-spin-button { -webkit-appearance: none; }
+.val-input:focus { border-bottom-color: var(--accent); background: rgba(232,224,96,0.06); border-radius: 2px 2px 0 0; }
+.readout-row {
+display: flex;
+align-items: baseline;
+gap: 3px;
+justify-content: center;
+}
+.val-unit {
+font-size: 0.68rem;
+color: var(--dim);
+}
+.val-sub {
+font-size: 0.62rem;
+color: var(--dim);
+text-align: center;
 }
 select#text-select {
 font-family: 'Space Mono', monospace;
@@ -359,18 +361,26 @@ body:not(.playing) .playbar { display: none; }
 
 <div class="controls">
 
-  <div class="knob-group">
-    <div class="knob-label">Speed (t/s)</div>
-    <canvas class="knob" id="knob-speed" width="80" height="80"></canvas>
-    <div class="knob-readout" id="readout-speed"></div>
+  <div class="ticks-group">
+    <label for="speed-slider">Speed (t/s)</label>
+    <input type="range" id="speed-slider" min="0.5" max="4" step="0.1" value="2">
+    <div class="readout-row">
+      <input type="number" id="speed-num" class="val-input" min="0.5" max="4" step="0.1" value="2">
+      <span class="val-unit">t/s</span>
+    </div>
+    <div class="val-sub" id="speed-ms">500.0 ms/tick</div>
   </div>
 
   <div class="ctrl-divider"></div>
 
-  <div class="knob-group">
-    <div class="knob-label">Offset (early)</div>
-    <canvas class="knob" id="knob-offset" width="80" height="80"></canvas>
-    <div class="knob-readout" id="readout-offset"></div>
+  <div class="ticks-group">
+    <label for="offset-slider">Offset (early)</label>
+    <input type="range" id="offset-slider" min="0" max="100" step="0.5" value="0">
+    <div class="readout-row">
+      <input type="number" id="offset-num" class="val-input" min="0" max="100" step="0.5" value="0">
+      <span class="val-unit">%</span>
+    </div>
+    <div class="val-sub" id="offset-ms">0.00 ms</div>
   </div>
 
   <!-- Dots-only controls -->
@@ -378,7 +388,7 @@ body:not(.playing) .playbar { display: none; }
   <div class="ticks-group exer-dots" id="ticks-group">
     <label for="ticks-slider">Tick Count</label>
     <input type="range" id="ticks-slider" min="5" max="40" value="20">
-    <div class="ticks-val" id="ticks-val">20</div>
+    <input type="number" class="val-input ticks-val" id="ticks-val" min="5" max="40" value="20">
   </div>
 
   <!-- RBTL-only controls -->
@@ -386,25 +396,25 @@ body:not(.playing) .playbar { display: none; }
   <div class="ticks-group exer-rbtl" hidden>
     <label for="font-slider">Font Size</label>
     <input type="range" id="font-slider" min="14" max="42" value="22">
-    <div class="ticks-val" id="font-val">22</div>
+    <input type="number" class="val-input ticks-val" id="font-val" min="14" max="42" value="22">
   </div>
   <div class="ctrl-divider exer-rbtl" hidden></div>
   <div class="ticks-group exer-rbtl" hidden>
     <label for="width-slider">Column Width</label>
     <input type="range" id="width-slider" min="320" max="900" value="600">
-    <div class="ticks-val" id="width-val">600</div>
+    <input type="number" class="val-input ticks-val" id="width-val" min="320" max="900" value="600">
   </div>
   <div class="ctrl-divider exer-rbtl" hidden></div>
   <div class="ticks-group exer-rbtl" hidden>
     <label for="lines-slider">Max Lines</label>
     <input type="range" id="lines-slider" min="4" max="120" value="20">
-    <div class="ticks-val" id="lines-val">20</div>
+    <input type="number" class="val-input ticks-val" id="lines-val" min="4" max="120" value="20">
   </div>
   <div class="ctrl-divider exer-rbtl" hidden></div>
   <div class="ticks-group exer-rbtl" hidden>
     <label for="linespp-slider">Lines / Page</label>
     <input type="range" id="linespp-slider" min="1" max="40" value="8">
-    <div class="ticks-val" id="linespp-val">8</div>
+    <input type="number" class="val-input ticks-val" id="linespp-val" min="1" max="40" value="8">
   </div>
   <div class="ctrl-divider exer-rbtl" hidden></div>
   <div class="ticks-group exer-rbtl" hidden>
@@ -449,109 +459,6 @@ body:not(.playing) .playbar { display: none; }
 'use strict';
 
 // ═══════════════════════════════════════════════════════
-//  ROTARY KNOB
-// ═══════════════════════════════════════════════════════
-
-function makeKnob(id, min, max, initVal, decimals, onChange) {
-  const canvas = document.getElementById(id);
-  const ctx    = canvas.getContext('2d');
-  const W = canvas.width, H = canvas.height;
-  const cx = W / 2, cy = H / 2;
-  const radius = W * 0.36;
-  const START  = Math.PI * 0.75;
-  const END    = Math.PI * 2.25;
-  const SPAN   = END - START;
-
-  let value   = Math.max(min, Math.min(max, initVal));
-  let dragY   = 0;
-  let active  = false;
-
-  function draw() {
-    ctx.clearRect(0, 0, W, H);
-
-    // outer ring shadow
-    ctx.beginPath();
-    ctx.arc(cx, cy, radius + 5, 0, Math.PI * 2);
-    ctx.fillStyle = '#0a0a14';
-    ctx.fill();
-
-    // body
-    ctx.beginPath();
-    ctx.arc(cx, cy, radius + 2, 0, Math.PI * 2);
-    const grad = ctx.createRadialGradient(cx - 4, cy - 4, 2, cx, cy, radius + 2);
-    grad.addColorStop(0, '#252535');
-    grad.addColorStop(1, '#16161f');
-    ctx.fillStyle = grad;
-    ctx.fill();
-
-    // track
-    ctx.beginPath();
-    ctx.arc(cx, cy, radius, START, END);
-    ctx.strokeStyle = '#1a1a2a';
-    ctx.lineWidth = 5;
-    ctx.lineCap = 'round';
-    ctx.stroke();
-
-    // value arc
-    const frac = (value - min) / (max - min);
-    const valAngle = START + frac * SPAN;
-    ctx.beginPath();
-    ctx.arc(cx, cy, radius, START, valAngle);
-    ctx.strokeStyle = active ? '#fff08a' : '#e8e060';
-    ctx.lineWidth = 5;
-    ctx.lineCap = 'round';
-    ctx.stroke();
-
-    // pointer
-    const px = cx + Math.cos(valAngle) * (radius - 1);
-    const py = cy + Math.sin(valAngle) * (radius - 1);
-    ctx.beginPath();
-    ctx.arc(px, py, 4.5, 0, Math.PI * 2);
-    ctx.fillStyle = '#fffbe8';
-    ctx.fill();
-
-    // inner dot
-    ctx.beginPath();
-    ctx.arc(cx, cy, 5, 0, Math.PI * 2);
-    ctx.fillStyle = '#1a1a2a';
-    ctx.fill();
-  }
-
-  function set(v) {
-    value = Math.max(min, Math.min(max, v));
-    draw();
-    onChange(value);
-  }
-
-  canvas.addEventListener('pointerdown', e => {
-    active = true;
-    dragY  = e.clientY;
-    canvas.setPointerCapture(e.pointerId);
-    draw();
-  });
-
-  canvas.addEventListener('pointermove', e => {
-    if (!active) return;
-    const dy   = dragY - e.clientY;
-    dragY      = e.clientY;
-    const step = (max - min) / 150;
-    set(value + dy * step);
-  });
-
-  canvas.addEventListener('pointerup', () => { active = false; draw(); });
-
-  // scroll wheel too
-  canvas.addEventListener('wheel', e => {
-    e.preventDefault();
-    const step = (max - min) / 150;
-    set(value - Math.sign(e.deltaY) * step * 3);
-  }, { passive: false });
-
-  set(value);
-  return { set, get: () => value };
-}
-
-// ═══════════════════════════════════════════════════════
 //  STATE
 // ═══════════════════════════════════════════════════════
 
@@ -565,7 +472,7 @@ let lightTimeouts = [];
 let lightStates   = [];
 let lightHits     = [];  // true if user clicked while yellow
 
-let ticksPerSec   = 4;    // overridden by knob init
+let ticksPerSec   = 4;    // overridden by setSpeed() at init
 let totalTicks    = 20;
 let offsetFrac    = 0;    // 0..1 (fraction of tick interval)
 
@@ -1278,10 +1185,10 @@ function setRbtlText(text) {
 
 // Readouts
 function updateReadouts() {
-  document.getElementById('readout-speed').textContent =
-    `${ticksPerSec.toFixed(1)} t/s\n${tickMs().toFixed(1)} ms/tick`;
-  document.getElementById('readout-offset').textContent =
-    `${(offsetFrac * 100).toFixed(1)}%\n${offsetMs().toFixed(2)} ms`;
+  document.getElementById('speed-num').value  = ticksPerSec.toFixed(1);
+  document.getElementById('speed-ms').textContent = tickMs().toFixed(1) + ' ms/tick';
+  document.getElementById('offset-num').value = (offsetFrac * 100).toFixed(1);
+  document.getElementById('offset-ms').textContent = offsetMs().toFixed(2) + ' ms';
 }
 
 function setStatus(msg) {
@@ -1333,50 +1240,89 @@ function handleHitClick(e) {
 
 document.addEventListener('DOMContentLoaded', () => {
 
-  // Knobs
-  makeKnob('knob-speed', 0.5, 4, 2, 1, v => {
+  // Speed slider + number input
+  function setSpeed(v) {
+    v = Math.max(0.5, Math.min(4, +v || 0.5));
     ticksPerSec = v;
+    document.getElementById('speed-slider').value = v;
     updateReadouts();
-  });
+  }
+  document.getElementById('speed-slider').addEventListener('input', e => setSpeed(e.target.value));
+  document.getElementById('speed-num').addEventListener('change', e => setSpeed(e.target.value));
+  document.getElementById('speed-num').addEventListener('keydown', e => { if (e.key === 'Enter') setSpeed(e.target.value); });
 
-  makeKnob('knob-offset', 0, 1, 0, 3, v => {
-    offsetFrac = v;
+  // Offset slider + number input (slider is 0–100 percent; offsetFrac is 0–1)
+  function setOffset(pct) {
+    pct = Math.max(0, Math.min(100, +pct || 0));
+    offsetFrac = pct / 100;
+    document.getElementById('offset-slider').value = pct;
     updateReadouts();
-  });
+  }
+  document.getElementById('offset-slider').addEventListener('input', e => setOffset(e.target.value));
+  document.getElementById('offset-num').addEventListener('change', e => setOffset(e.target.value));
+  document.getElementById('offset-num').addEventListener('keydown', e => { if (e.key === 'Enter') setOffset(e.target.value); });
 
-  // Ticks slider (dots)
-  document.getElementById('ticks-slider').addEventListener('input', e => {
-    totalTicks = +e.target.value;
-    document.getElementById('ticks-val').textContent = totalTicks;
+  // Ticks slider + number input (dots)
+  function setTicks(v) {
+    v = Math.max(5, Math.min(40, Math.round(+v || 5)));
+    totalTicks = v;
+    document.getElementById('ticks-slider').value = v;
+    document.getElementById('ticks-val').value = v;
     buildLights();
     reset();
-  });
+  }
+  document.getElementById('ticks-slider').addEventListener('input', e => setTicks(e.target.value));
+  document.getElementById('ticks-val').addEventListener('change', e => setTicks(e.target.value));
+  document.getElementById('ticks-val').addEventListener('keydown', e => { if (e.key === 'Enter') setTicks(e.target.value); });
 
   // RBTL layout controls — difficulty levers; re-pick targets when idle.
-  document.getElementById('font-slider').addEventListener('input', e => {
+  function setFont(v) {
     if (isPlaying) return;
-    rbtlFontPx = +e.target.value;
-    document.getElementById('font-val').textContent = rbtlFontPx;
+    v = Math.max(14, Math.min(42, Math.round(+v || 14)));
+    rbtlFontPx = v;
+    document.getElementById('font-slider').value = v;
+    document.getElementById('font-val').value = v;
     renderRbtl();
-  });
-  document.getElementById('width-slider').addEventListener('input', e => {
+  }
+  document.getElementById('font-slider').addEventListener('input', e => setFont(e.target.value));
+  document.getElementById('font-val').addEventListener('change', e => setFont(e.target.value));
+  document.getElementById('font-val').addEventListener('keydown', e => { if (e.key === 'Enter') setFont(e.target.value); });
+
+  function setColW(v) {
     if (isPlaying) return;
-    rbtlColW = +e.target.value;
-    document.getElementById('width-val').textContent = rbtlColW;
+    v = Math.max(320, Math.min(900, Math.round(+v || 320)));
+    rbtlColW = v;
+    document.getElementById('width-slider').value = v;
+    document.getElementById('width-val').value = v;
     renderRbtl();
-  });
-  document.getElementById('lines-slider').addEventListener('input', e => {
+  }
+  document.getElementById('width-slider').addEventListener('input', e => setColW(e.target.value));
+  document.getElementById('width-val').addEventListener('change', e => setColW(e.target.value));
+  document.getElementById('width-val').addEventListener('keydown', e => { if (e.key === 'Enter') setColW(e.target.value); });
+
+  function setMaxLines(v) {
     if (isPlaying) return;
-    rbtlMaxLines = +e.target.value;
-    document.getElementById('lines-val').textContent = rbtlMaxLines;
+    v = Math.max(4, Math.min(120, Math.round(+v || 4)));
+    rbtlMaxLines = v;
+    document.getElementById('lines-slider').value = v;
+    document.getElementById('lines-val').value = v;
     renderRbtl();
-  });
-  document.getElementById('linespp-slider').addEventListener('input', e => {
+  }
+  document.getElementById('lines-slider').addEventListener('input', e => setMaxLines(e.target.value));
+  document.getElementById('lines-val').addEventListener('change', e => setMaxLines(e.target.value));
+  document.getElementById('lines-val').addEventListener('keydown', e => { if (e.key === 'Enter') setMaxLines(e.target.value); });
+
+  function setLinesPerPage(v) {
     if (isPlaying) return;
-    rbtlLinesPerPage = +e.target.value;
-    document.getElementById('linespp-val').textContent = rbtlLinesPerPage;
+    v = Math.max(1, Math.min(40, Math.round(+v || 1)));
+    rbtlLinesPerPage = v;
+    document.getElementById('linespp-slider').value = v;
+    document.getElementById('linespp-val').value = v;
     renderRbtl();
-  });
+  }
+  document.getElementById('linespp-slider').addEventListener('input', e => setLinesPerPage(e.target.value));
+  document.getElementById('linespp-val').addEventListener('change', e => setLinesPerPage(e.target.value));
+  document.getElementById('linespp-val').addEventListener('keydown', e => { if (e.key === 'Enter') setLinesPerPage(e.target.value); });
 
   // Debug toggle — reveal page-0 targets at setup (setup preview only).
   document.getElementById('debug-toggle').addEventListener('click', e => {
@@ -1450,7 +1396,8 @@ document.addEventListener('DOMContentLoaded', () => {
   document.addEventListener('pointerdown', handleHitClick);
 
   // Init state
-  ticksPerSec = 2;
+  setSpeed(2);
+  setOffset(0);
   rbtlText    = RBTL_TEXTS[0].text;  // preload first passage (rendered on switch to RBTL)
   activeExercise = dotExercise;
   selectExercise('dots');
